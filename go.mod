@@ -1,4 +1,4 @@
-module jf
+module github.com/MinamiKotoriCute/jf
 
 go 1.20
 
