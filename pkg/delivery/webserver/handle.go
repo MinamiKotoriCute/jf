@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type HandleFuncType[ReqT proto.Message, RspT proto.Message] func(ctx context.Context, req ReqT) (error, RspT)
+type HandleFuncType[ReqT proto.Message, RspT proto.Message] func(ctx context.Context, req ReqT) (RspT, error)
 
 type handleFuncInfo struct {
 	ReqName string
