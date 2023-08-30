@@ -1,4 +1,4 @@
-package web
+package webserver
 
 import (
 	"context"
@@ -9,19 +9,19 @@ import (
 	"github.com/rotisserie/eris"
 )
 
-type Delivery struct {
+type WebServer struct {
 	mutex      sync.Mutex
 	httpServer *http.Server
 	serveMux   *http.ServeMux
 }
 
-func NewDelivery() *Delivery {
-	return &Delivery{
+func NewDelivery() *WebServer {
+	return &WebServer{
 		serveMux: http.NewServeMux(),
 	}
 }
 
-func (o *Delivery) Start(addr string) error {
+func (o *WebServer) Start(addr string) error {
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 
@@ -43,7 +43,7 @@ func (o *Delivery) Start(addr string) error {
 	return nil
 }
 
-func (o *Delivery) Stop(ctx context.Context) error {
+func (o *WebServer) Stop(ctx context.Context) error {
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 

@@ -1,4 +1,4 @@
-package web
+package webserver
 
 import (
 	"context"
@@ -75,7 +75,52 @@ func parseHandleFunc(f interface{}) (*handleFuncInfo, error) {
 }
 
 // f type must be HandleFuncType
-func (o *Delivery) HandlePostFunc(baseUrl string, f interface{}) {
+func (o *WebServer) HandleGetFunc(baseUrl string, f interface{}) {
+	funcInfo, err := parseHandleFunc(f)
+	if err != nil {
+		glog.Fatal(eris.ToString(err, true))
+	}
+
+	pattern := baseUrl + "/" + funcInfo.ReqName
+	o.serveMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		data := r.URL.Query().Get("data")
+		req := funcInfo.NewReq()
+		if len(data) != 0 {
+			if err := json.Unmarshal([]byte(data), req); err != nil {
+				glog.Errorf("proto.Unmarshall fail. err:%v", err)
+				return
+			}
+		}
+
+		ctx := context.Background()
+		rsp, err := funcInfo.Call(ctx, req)
+		if err != nil {
+			glog.Errorf("call service fail. err:%v", eris.ToString(err, true))
+			return
+		}
+
+		rspData, err := json.Marshal(rsp)
+		if err != nil {
+			glog.Errorf("proto.Marshal fail. err:%v", err)
+			return
+		}
+
+		w.Header().Set("Accept", "application/json")
+		_, err = w.Write(rspData)
+		if err != nil {
+			glog.Errorf("w.Write fail. err:%v", err)
+			return
+		}
+	})
+}
+
+// check f argument type at compile time
+func HandleGet[ReqT proto.Message, RspT proto.Message](o *WebServer, baseUrl string, f HandleFuncType[ReqT, RspT]) {
+	o.HandleGetFunc(baseUrl, f)
+}
+
+// f type must be HandleFuncType
+func (o *WebServer) HandlePostFunc(baseUrl string, f interface{}) {
 	funcInfo, err := parseHandleFunc(f)
 	if err != nil {
 		glog.Fatal(eris.ToString(err, true))
@@ -121,51 +166,6 @@ func (o *Delivery) HandlePostFunc(baseUrl string, f interface{}) {
 }
 
 // check f argument type at compile time
-func HandlePost[ReqT proto.Message, RspT proto.Message](o *Delivery, baseUrl string, f HandleFuncType[ReqT, RspT]) {
+func HandlePost[ReqT proto.Message, RspT proto.Message](o *WebServer, baseUrl string, f HandleFuncType[ReqT, RspT]) {
 	o.HandlePostFunc(baseUrl, f)
-}
-
-// f type must be HandleFuncType
-func (o *Delivery) HandleGetFunc(baseUrl string, f interface{}) {
-	funcInfo, err := parseHandleFunc(f)
-	if err != nil {
-		glog.Fatal(eris.ToString(err, true))
-	}
-
-	pattern := baseUrl + "/" + funcInfo.ReqName
-	o.serveMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-		data := r.URL.Query().Get("data")
-		req := funcInfo.NewReq()
-		if len(data) != 0 {
-			if err := json.Unmarshal([]byte(data), req); err != nil {
-				glog.Errorf("proto.Unmarshall fail. err:%v", err)
-				return
-			}
-		}
-
-		ctx := context.Background()
-		rsp, err := funcInfo.Call(ctx, req)
-		if err != nil {
-			glog.Errorf("call service fail. err:%v", eris.ToString(err, true))
-			return
-		}
-
-		rspData, err := json.Marshal(rsp)
-		if err != nil {
-			glog.Errorf("proto.Marshal fail. err:%v", err)
-			return
-		}
-
-		w.Header().Set("Accept", "application/json")
-		_, err = w.Write(rspData)
-		if err != nil {
-			glog.Errorf("w.Write fail. err:%v", err)
-			return
-		}
-	})
-}
-
-// check f argument type at compile time
-func HandleGet[ReqT proto.Message, RspT proto.Message](o *Delivery, baseUrl string, f HandleFuncType[ReqT, RspT]) {
-	o.HandleGetFunc(baseUrl, f)
 }
