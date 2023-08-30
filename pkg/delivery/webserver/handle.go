@@ -13,6 +13,10 @@ import (
 )
 
 type HandleFuncType[ReqT proto.Message, RspT proto.Message] func(ctx context.Context, req ReqT) (RspT, error)
+type HandleUserFuncType[ReqT proto.Message, RspT proto.Message] func(ctx context.Context, req ReqT, uid int64) (RspT, error)
+type HandleFunc[ReqT proto.Message, RspT proto.Message] interface {
+	HandleFuncType[ReqT, RspT] | HandleUserFuncType[ReqT, RspT]
+}
 
 type handleFuncInfo struct {
 	ReqName string
@@ -23,34 +27,34 @@ type handleFuncInfo struct {
 // f type must be HandleFuncType
 func parseHandleFunc(f interface{}) (*handleFuncInfo, error) {
 	fType := reflect.TypeOf(f)
-	// if fType.Kind() != reflect.Func {
-	// 	return nil, eris.New("f is not func")
-	// }
+	if fType.Kind() != reflect.Func {
+		return nil, eris.New("f is not func")
+	}
 
-	// if fType.NumIn() != 2 {
-	// 	return nil, eris.New("f in num error")
-	// }
+	if fType.NumIn() != 2 {
+		return nil, eris.New("f in num error")
+	}
 
-	// if fType.In(0) != reflect.TypeOf((*context.Context)(nil)).Elem() {
-	// 	return nil, eris.New("f in[0] type error")
-	// }
+	if fType.In(0) != reflect.TypeOf((*context.Context)(nil)).Elem() {
+		return nil, eris.New("f in[0] type error")
+	}
 
-	// messageType := reflect.TypeOf((*proto.Message)(nil)).Elem()
-	// if !fType.In(1).Implements(messageType) {
-	// 	return nil, eris.New("f in[1] type error")
-	// }
+	messageType := reflect.TypeOf((*proto.Message)(nil)).Elem()
+	if !fType.In(1).Implements(messageType) {
+		return nil, eris.New("f in[1] type error")
+	}
 
-	// if fType.NumOut() != 2 {
-	// 	return nil, eris.New("f out num error")
-	// }
+	if fType.NumOut() != 2 {
+		return nil, eris.New("f out num error")
+	}
 
-	// if fType.Out(0) != reflect.TypeOf((*error)(nil)).Elem() {
-	// 	return nil, eris.New("f out[0] type error")
-	// }
+	if !fType.Out(0).Implements(messageType) {
+		return nil, eris.New("f out[1] type error")
+	}
 
-	// if !fType.Out(1).Implements(messageType) {
-	// 	return nil, eris.New("f out[1] type error")
-	// }
+	if fType.Out(1) != reflect.TypeOf((*error)(nil)).Elem() {
+		return nil, eris.New("f out[0] type error")
+	}
 
 	newReq := func() proto.Message {
 		return reflect.New(fType.In(1)).Elem().Interface().(proto.Message)
@@ -112,6 +116,13 @@ func (o *WebServer) HandleGetFunc(baseUrl string, f interface{}) {
 			return
 		}
 	})
+}
+
+// f type must be HandleFuncType
+func (o *WebServer) HandleGetFuncs(baseUrl string, f ...interface{}) {
+	for _, v := range f {
+		o.HandleGetFunc(baseUrl, v)
+	}
 }
 
 // check f argument type at compile time
