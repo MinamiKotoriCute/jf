@@ -15,7 +15,7 @@ type WebServer struct {
 	serveMux   *http.ServeMux
 }
 
-func NewDelivery() *WebServer {
+func NewWebServer() *WebServer {
 	return &WebServer{
 		serveMux: http.NewServeMux(),
 	}
