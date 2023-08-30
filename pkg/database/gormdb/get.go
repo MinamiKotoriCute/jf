@@ -8,22 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
-func (o *GormDb[T]) getDsn(database string) string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4",
-		o.config.User,
-		o.config.Password,
-		o.config.Host,
-		o.config.Password,
-		database)
-}
-
 func (o *GormDb[T]) connect(dbType T) error {
-	databaseName := ""
-	if t, ok := any(dbType).(DbTypeGetDatabase); ok {
-		databaseName = t.GetDatabase()
+	dsn := ""
+	if t, ok := any(dbType).(DbTypeGetDsn); ok {
+		dsn = t.GetDsn(o.config)
+	} else {
+		return eris.New("dsn is empty")
 	}
 
-	dsn := o.getDsn(databaseName)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return eris.Wrapf(err, "dsn:%s", dsn)
