@@ -1,5 +1,6 @@
 package tcpserver
 
 type Config struct {
-	TcpPacketSizeLimit uint64
+	PacketSizeLimit uint64
+	ReadBufferSize  int
 }

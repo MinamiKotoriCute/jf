@@ -49,7 +49,7 @@ func (o *WebServer) RegistGetFunc(baseUrl string, f interface{}) {
 
 		rspData, err := handle(funcInfo, []byte(data))
 		if err != nil {
-			glog.Errorf("handle fail. err:%v", eris.ToString(err, false))
+			glog.Errorf("handle fail. err:%v", eris.ToString(err, true))
 			return
 		}
 
@@ -87,7 +87,7 @@ func (o *WebServer) RegistPostFunc(baseUrl string, f interface{}) {
 
 		rspData, err := handle(funcInfo, []byte(data))
 		if err != nil {
-			glog.Errorf("handle fail. err:%v", eris.ToString(err, false))
+			glog.Errorf("handle fail. err:%v", eris.ToString(err, true))
 			return
 		}
 
