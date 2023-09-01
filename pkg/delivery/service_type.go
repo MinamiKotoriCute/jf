@@ -9,7 +9,6 @@ import (
 )
 
 type HandleFuncType[ReqT proto.Message, RspT proto.Message] func(ctx context.Context, req ReqT) (RspT, error)
-type HandleUserFuncType[ReqT proto.Message, RspT proto.Message] func(ctx context.Context, req ReqT, uid int64) (RspT, error)
 
 type HandleFuncInfo struct {
 	ReqName string
