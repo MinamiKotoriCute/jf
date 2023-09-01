@@ -50,15 +50,15 @@ func parseHandleFunc(f interface{}) (*handleFuncInfo, error) {
 	}
 
 	if !fType.Out(0).Implements(messageType) {
-		return nil, eris.New("f out[1] type error")
-	}
-
-	if fType.Out(1) != reflect.TypeOf((*error)(nil)).Elem() {
 		return nil, eris.New("f out[0] type error")
 	}
 
+	if fType.Out(1) != reflect.TypeOf((*error)(nil)).Elem() {
+		return nil, eris.New("f out[1] type error")
+	}
+
 	newReq := func() proto.Message {
-		return reflect.New(fType.In(0)).Elem().Interface().(proto.Message)
+		return reflect.New(fType.In(1).Elem()).Interface().(proto.Message)
 	}
 	reqName := newReq().ProtoReflect().Descriptor().FullName()
 	call := func(ctx context.Context, req proto.Message) (proto.Message, error) {
