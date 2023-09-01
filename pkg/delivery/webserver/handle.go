@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/rotisserie/eris"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -90,7 +91,7 @@ func (o *WebServer) HandleGetFunc(baseUrl string, f interface{}) {
 		data := r.URL.Query().Get("data")
 		req := funcInfo.NewReq()
 		if len(data) != 0 {
-			if err := json.Unmarshal([]byte(data), req); err != nil {
+			if err := protojson.Unmarshal([]byte(data), req); err != nil {
 				glog.Errorf("proto.Unmarshall fail. err:%v", err)
 				return
 			}
@@ -103,7 +104,7 @@ func (o *WebServer) HandleGetFunc(baseUrl string, f interface{}) {
 			return
 		}
 
-		rspData, err := json.Marshal(rsp)
+		rspData, err := protojson.Marshal(rsp)
 		if err != nil {
 			glog.Errorf("proto.Marshal fail. err:%v", err)
 			return
