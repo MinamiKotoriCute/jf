@@ -23,10 +23,10 @@ func login2REQ(ctx context.Context, req *pb.Login2REQ) (*pb.Login2RSP, error) {
 	}, nil
 }
 
-func TestWebServer(t *testing.T) {
+func TestWebServerGet(t *testing.T) {
 	o := NewWebServer()
 
-	o.HandleGetFuncs("/web",
+	o.RegistGetFuncs("/web",
 		loginREQ,
 		login2REQ)
 
