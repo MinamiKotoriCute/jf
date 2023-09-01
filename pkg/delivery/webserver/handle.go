@@ -58,7 +58,7 @@ func parseHandleFunc(f interface{}) (*handleFuncInfo, error) {
 	}
 
 	newReq := func() proto.Message {
-		return reflect.New(fType.In(1)).Elem().Interface().(proto.Message)
+		return reflect.New(fType.In(0)).Elem().Interface().(proto.Message)
 	}
 	reqName := newReq().ProtoReflect().Descriptor().FullName()
 	call := func(ctx context.Context, req proto.Message) (proto.Message, error) {
