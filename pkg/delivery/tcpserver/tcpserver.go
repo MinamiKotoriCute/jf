@@ -1,7 +1,9 @@
 package tcpserver
 
 import (
+	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
 	"sync"
@@ -21,6 +23,8 @@ type TcpServer struct {
 	onConnctedFunc    OnConnctedFuncType
 	onDisconnctedFunc OnDisconnctedFuncType
 	onReceiveFunc     OnReceiveFuncType
+	conns             map[net.Conn]interface{}
+	connsLock         sync.RWMutex
 }
 
 func NewTcpServer(config *Config,
@@ -40,6 +44,7 @@ func NewTcpServer(config *Config,
 		onConnctedFunc:    onConnctedFunc,
 		onDisconnctedFunc: onDisconnctedFunc,
 		onReceiveFunc:     onReceiveFunc,
+		conns:             make(map[net.Conn]interface{}),
 	}
 }
 
@@ -50,15 +55,26 @@ func (o *TcpServer) Start(address string) error {
 	}
 
 	o.listen = listen
+	o.wg.Add(1)
 	go o.serve()
 
 	return nil
 }
 
-func (o *TcpServer) Stop() error {
+// stop accept new connection, and close all connection read stream
+// wait all connection current handle finished
+func (o *TcpServer) Stop(ctx context.Context) error {
 	if err := o.listen.Close(); err != nil {
 		return eris.Wrap(err, "")
 	}
+
+	o.connsLock.Lock()
+	for conn := range o.conns {
+		if tcpConn, ok := conn.(*net.TCPConn); ok {
+			tcpConn.CloseRead()
+		}
+	}
+	o.connsLock.Unlock()
 	o.wg.Wait()
 
 	return nil
@@ -69,8 +85,11 @@ func (o *TcpServer) serve() {
 
 	for {
 		conn, err := o.listen.Accept()
+		o.conns[conn] = nil
 		if err != nil {
-			glog.Warning(err)
+			if !errors.Is(err, net.ErrClosed) {
+				glog.Warning(err)
+			}
 			break
 		}
 
@@ -85,6 +104,9 @@ func (o *TcpServer) serve() {
 
 func (o *TcpServer) handleConnection(conn net.Conn) error {
 	defer func() {
+		o.connsLock.Lock()
+		delete(o.conns, conn)
+		o.connsLock.Unlock()
 		conn.Close()
 		o.wg.Done()
 	}()
