@@ -5,14 +5,16 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/MinamiKotoriCute/jf/pkg/delivery"
 	"github.com/golang/glog"
 	"github.com/rotisserie/eris"
 )
 
 type WebServer struct {
-	mutex      sync.Mutex
-	httpServer *http.Server
-	serveMux   *http.ServeMux
+	mutex            sync.Mutex
+	httpServer       *http.Server
+	serveMux         *http.ServeMux
+	OnHandleFinished delivery.OnHandleFinishedFuncType
 }
 
 func NewWebServer() *WebServer {
