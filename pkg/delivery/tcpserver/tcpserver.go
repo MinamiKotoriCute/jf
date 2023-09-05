@@ -164,15 +164,17 @@ func (o *TcpServer) handleConnection(conn net.Conn) error {
 	}
 }
 
-func (o *TcpServer) SendToUser(conn net.Conn, data []byte) {
+func (o *TcpServer) SendToUser(conn net.Conn, data []byte) error {
 	if len(data) == 0 {
-		return
+		return nil
 	}
 
 	writeBuffer := wrapPacket(data)
 	if _, err := conn.Write(writeBuffer); err != nil {
-		glog.Warning(eris.ToString(err, true))
+		return eris.Wrap(err, "")
 	}
+
+	return nil
 }
 
 func wrapPacket(data []byte) []byte {
