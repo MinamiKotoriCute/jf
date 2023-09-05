@@ -155,16 +155,29 @@ func (o *TcpServer) handleConnection(conn net.Conn) error {
 
 		if rspData, err := o.onReceiveFunc(conn, tempBuffer[8:packetSize+8]); err != nil {
 			return err
-		} else if len(rspData) > 0 {
-			writeBuffer := make([]byte, 8)
-			binary.BigEndian.PutUint64(writeBuffer, uint64(len(rspData)))
-			writeBuffer = append(writeBuffer, rspData...)
-			if _, err := conn.Write(writeBuffer); err != nil {
-				return eris.Wrap(err, "")
-			}
+		} else {
+			o.SendToUser(conn, rspData)
 		}
 
 		tempBuffer = tempBuffer[packetSize+8:]
 		packetSize = 0
 	}
+}
+
+func (o *TcpServer) SendToUser(conn net.Conn, data []byte) {
+	if len(data) == 0 {
+		return
+	}
+
+	writeBuffer := wrapPacket(data)
+	if _, err := conn.Write(writeBuffer); err != nil {
+		glog.Warning(eris.ToString(err, true))
+	}
+}
+
+func wrapPacket(data []byte) []byte {
+	writeBuffer := make([]byte, 8)
+	binary.BigEndian.PutUint64(writeBuffer, uint64(len(data)))
+	writeBuffer = append(writeBuffer, data...)
+	return writeBuffer
 }
