@@ -165,5 +165,6 @@ func (o *TcpServer) handleConnection(conn net.Conn) error {
 		}
 
 		tempBuffer = tempBuffer[packetSize+8:]
+		packetSize = 0
 	}
 }
