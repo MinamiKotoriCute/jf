@@ -19,8 +19,13 @@ func (o *WebServer) RegistGetFunc(baseUrl string, f interface{}) {
 	pattern := baseUrl + "/" + funcInfo.ReqName
 	o.serveMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		data := r.URL.Query().Get("data")
+		ctx, err := o.GetHandleContextFunc(r)
+		if err != nil {
+			glog.Errorf("getContext fail. err:%v", eris.ToString(err, true))
+			return
+		}
 
-		rspData, err := handle(funcInfo, []byte(data), o.OnHandleFinished)
+		rspData, err := handle(ctx, funcInfo, []byte(data), o.OnHandleFinished)
 		if err != nil {
 			glog.Errorf("handle fail. err:%v", eris.ToString(err, true))
 			return
@@ -58,7 +63,13 @@ func (o *WebServer) RegistPostFunc(baseUrl string, f interface{}) {
 			return
 		}
 
-		rspData, err := handle(funcInfo, []byte(data), o.OnHandleFinished)
+		ctx, err := o.GetHandleContextFunc(r)
+		if err != nil {
+			glog.Errorf("getContext fail. err:%v", eris.ToString(err, true))
+			return
+		}
+
+		rspData, err := handle(ctx, funcInfo, []byte(data), o.OnHandleFinished)
 		if err != nil {
 			glog.Errorf("handle fail. err:%v", eris.ToString(err, true))
 			return

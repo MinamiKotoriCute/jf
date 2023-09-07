@@ -10,16 +10,20 @@ import (
 	"github.com/rotisserie/eris"
 )
 
+type GetHandleContextFuncType func(r *http.Request) (context.Context, error)
+
 type WebServer struct {
-	mutex            sync.Mutex
-	httpServer       *http.Server
-	serveMux         *http.ServeMux
-	OnHandleFinished delivery.OnHandleFinishedFuncType
+	mutex                sync.Mutex
+	httpServer           *http.Server
+	serveMux             *http.ServeMux
+	OnHandleFinished     delivery.OnHandleFinishedFuncType
+	GetHandleContextFunc GetHandleContextFuncType
 }
 
 func NewWebServer() *WebServer {
 	return &WebServer{
-		serveMux: http.NewServeMux(),
+		serveMux:             http.NewServeMux(),
+		GetHandleContextFunc: DefaultGetContext,
 	}
 }
 
@@ -53,12 +57,9 @@ func (o *WebServer) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	glog.Infof("webserver stop")
 	if err := o.httpServer.Shutdown(ctx); err != nil {
 		return eris.Wrapf(err, "shutdown fail")
 	}
-
-	glog.Infof("webserver stop end")
 
 	return nil
 }

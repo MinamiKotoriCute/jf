@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func handle(funcInfo *delivery.HandleFuncInfo, data []byte, onFinishedFunc delivery.OnHandleFinishedFuncType) ([]byte, error) {
+func handle(ctx context.Context, funcInfo *delivery.HandleFuncInfo, data []byte, onFinishedFunc delivery.OnHandleFinishedFuncType) ([]byte, error) {
 	req := funcInfo.NewReq()
 	if len(data) != 0 {
 		if err := protojson.Unmarshal(data, req); err != nil {
@@ -16,7 +16,6 @@ func handle(funcInfo *delivery.HandleFuncInfo, data []byte, onFinishedFunc deliv
 		}
 	}
 
-	ctx := context.Background()
 	rsp, err := funcInfo.Call(ctx, req)
 	if err != nil {
 		return nil, eris.Wrap(err, "")
