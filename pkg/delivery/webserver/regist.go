@@ -25,7 +25,7 @@ func (o *WebServer) RegistGetFunc(baseUrl string, f interface{}) {
 			return
 		}
 
-		rspData, err := handle(ctx, funcInfo, []byte(data), o.OnHandleFinished)
+		rspData, err := o.handle(ctx, funcInfo, []byte(data))
 		if err != nil {
 			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return
@@ -69,7 +69,7 @@ func (o *WebServer) RegistPostFunc(baseUrl string, f interface{}) {
 			return
 		}
 
-		rspData, err := handle(ctx, funcInfo, []byte(data), o.OnHandleFinished)
+		rspData, err := o.handle(ctx, funcInfo, []byte(data))
 		if err != nil {
 			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return

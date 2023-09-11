@@ -8,16 +8,19 @@ import (
 	"github.com/MinamiKotoriCute/jf/pkg/delivery"
 	"github.com/rotisserie/eris"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 type GetHandleContextFuncType func(r *http.Request) (context.Context, error)
+type CreateInternalErrorRspFuncType func(reqMessageName string) (proto.Message, error)
 
 type WebServer struct {
-	mutex                sync.Mutex
-	httpServer           *http.Server
-	serveMux             *http.ServeMux
-	OnHandleFinished     delivery.OnHandleFinishedFuncType
-	GetHandleContextFunc GetHandleContextFuncType
+	mutex                      sync.Mutex
+	httpServer                 *http.Server
+	serveMux                   *http.ServeMux
+	OnHandleFinishedFunc       delivery.OnHandleFinishedFuncType
+	GetHandleContextFunc       GetHandleContextFuncType
+	CreateInternalErrorRspFunc CreateInternalErrorRspFuncType
 }
 
 func NewWebServer() *WebServer {
