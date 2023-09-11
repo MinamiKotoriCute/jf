@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/MinamiKotoriCute/jf/pkg/delivery"
-	"github.com/golang/glog"
 	"github.com/rotisserie/eris"
+	"github.com/sirupsen/logrus"
 )
 
 type GetHandleContextFuncType func(r *http.Request) (context.Context, error)
@@ -42,7 +42,7 @@ func (o *WebServer) Start(addr string) error {
 
 	go func() {
 		if err := o.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			glog.Fatalf("ListenAndServe fail. err:%v", err)
+			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 		}
 	}()
 

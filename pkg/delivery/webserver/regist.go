@@ -5,15 +5,15 @@ import (
 	"net/http"
 
 	"github.com/MinamiKotoriCute/jf/pkg/delivery"
-	"github.com/golang/glog"
 	"github.com/rotisserie/eris"
+	"github.com/sirupsen/logrus"
 )
 
 // f type must be HandleFuncType
 func (o *WebServer) RegistGetFunc(baseUrl string, f interface{}) {
 	funcInfo, err := delivery.GetHandleFuncInfo(f)
 	if err != nil {
-		glog.Fatal(eris.ToString(err, true))
+		logrus.WithField("error", eris.ToJSON(err, true)).Fatal()
 	}
 
 	pattern := baseUrl + "/" + funcInfo.ReqName
@@ -21,20 +21,20 @@ func (o *WebServer) RegistGetFunc(baseUrl string, f interface{}) {
 		data := r.URL.Query().Get("data")
 		ctx, err := o.GetHandleContextFunc(r)
 		if err != nil {
-			glog.Errorf("getContext fail. err:%v", eris.ToString(err, true))
+			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 
 		rspData, err := handle(ctx, funcInfo, []byte(data), o.OnHandleFinished)
 		if err != nil {
-			glog.Errorf("handle fail. err:%v", eris.ToString(err, true))
+			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 
 		w.Header().Set("Accept", "application/json")
 		_, err = w.Write(rspData)
 		if err != nil {
-			glog.Errorf("w.Write fail. err:%v", err)
+			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 	})
@@ -51,7 +51,7 @@ func (o *WebServer) RegistGetFuncs(baseUrl string, f ...interface{}) {
 func (o *WebServer) RegistPostFunc(baseUrl string, f interface{}) {
 	funcInfo, err := delivery.GetHandleFuncInfo(f)
 	if err != nil {
-		glog.Fatal(eris.ToString(err, true))
+		logrus.WithField("error", eris.ToJSON(err, true)).Fatal()
 	}
 
 	pattern := baseUrl + "/" + funcInfo.ReqName
@@ -59,26 +59,26 @@ func (o *WebServer) RegistPostFunc(baseUrl string, f interface{}) {
 		defer r.Body.Close()
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
-			glog.Errorf("io.ReadAl fail. err:%v", err)
+			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 
 		ctx, err := o.GetHandleContextFunc(r)
 		if err != nil {
-			glog.Errorf("getContext fail. err:%v", eris.ToString(err, true))
+			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 
 		rspData, err := handle(ctx, funcInfo, []byte(data), o.OnHandleFinished)
 		if err != nil {
-			glog.Errorf("handle fail. err:%v", eris.ToString(err, true))
+			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 
 		w.Header().Set("Accept", "application/json")
 		_, err = w.Write(rspData)
 		if err != nil {
-			glog.Errorf("w.Write fail. err:%v", err)
+			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 	})

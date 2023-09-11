@@ -18,7 +18,7 @@ func handle(ctx context.Context, funcInfo *delivery.HandleFuncInfo, data []byte,
 
 	rsp, err := funcInfo.Call(ctx, req)
 	if err != nil {
-		return nil, eris.Wrap(err, "")
+		return nil, err
 	}
 
 	m := &protojson.MarshalOptions{
