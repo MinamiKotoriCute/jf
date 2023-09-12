@@ -8,8 +8,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/golang/glog"
 	"github.com/rotisserie/eris"
+	"github.com/sirupsen/logrus"
 )
 
 type OnConnctedFuncType func(conn net.Conn) error
@@ -88,7 +88,7 @@ func (o *TcpServer) serve() {
 		o.conns[conn] = nil
 		if err != nil {
 			if !errors.Is(err, net.ErrClosed) {
-				glog.Warning(err)
+				logrus.WithField("error", eris.ToJSON(err, true)).Warning()
 			}
 			break
 		}
@@ -96,7 +96,7 @@ func (o *TcpServer) serve() {
 		o.wg.Add(1)
 		go func() {
 			if err := o.handleConnection(conn); err != nil {
-				glog.Warning(eris.ToString(err, true))
+				logrus.WithField("error", eris.ToJSON(err, true)).Warning()
 			}
 		}()
 	}
