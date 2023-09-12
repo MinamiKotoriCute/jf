@@ -27,6 +27,7 @@ func (o *WebServer) handle(ctx context.Context, funcInfo *delivery.HandleFuncInf
 			logrus.WithField("error", eris.ToJSON(err2, true)).Warning()
 			return nil, eris.Wrap(err, "")
 		} else {
+			logrus.WithField("error", eris.ToJSON(err, true)).Warning()
 			rsp = rsp2
 		}
 	}
