@@ -3,7 +3,6 @@ module github.com/MinamiKotoriCute/jf
 go 1.20
 
 require (
-	github.com/golang/glog v1.1.2
 	github.com/rotisserie/eris v0.5.4
 	github.com/sirupsen/logrus v1.9.3
 	google.golang.org/protobuf v1.31.0
