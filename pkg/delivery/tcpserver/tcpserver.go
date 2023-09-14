@@ -121,13 +121,16 @@ func (o *TcpServer) handleConnection(conn net.Conn) error {
 		}
 	}
 
+	defer func() {
+		if o.onDisconnctedFunc != nil {
+			o.onDisconnctedFunc(conn)
+		}
+	}()
+
 	for {
 		n, err := conn.Read(readBuffer)
 		if err != nil {
 			if err == io.EOF {
-				if o.onDisconnctedFunc != nil {
-					o.onDisconnctedFunc(conn)
-				}
 				return nil
 			}
 			return eris.Wrap(err, "")
