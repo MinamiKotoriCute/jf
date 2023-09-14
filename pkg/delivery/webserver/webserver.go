@@ -12,7 +12,7 @@ import (
 )
 
 type GetHandleContextFuncType func(r *http.Request) (context.Context, error)
-type CreateInternalErrorRspFuncType func(reqMessageName string) (proto.Message, error)
+type CreateInternalErrorRspFuncType func(handleErr error, reqMessageName string) (proto.Message, bool, error)
 
 type WebServer struct {
 	mutex                      sync.Mutex

@@ -23,11 +23,13 @@ func (o *WebServer) handle(ctx context.Context, funcInfo *delivery.HandleFuncInf
 			return nil, err
 		}
 
-		if rsp2, err2 := o.CreateInternalErrorRspFunc(string(req.ProtoReflect().Descriptor().FullName())); err2 != nil {
-			logrus.WithField("error", eris.ToJSON(err2, true)).Warning()
+		if rsp2, isExpectedError, err2 := o.CreateInternalErrorRspFunc(err, string(req.ProtoReflect().Descriptor().FullName())); err2 != nil {
+			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err2, true)).Warning()
 			return nil, eris.Wrap(err, "")
 		} else {
-			logrus.WithField("error", eris.ToJSON(err, true)).Warning()
+			if !isExpectedError {
+				logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Warning()
+			}
 			rsp = rsp2
 		}
 	}
