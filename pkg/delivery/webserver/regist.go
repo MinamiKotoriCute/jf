@@ -27,14 +27,14 @@ func (o *WebServer) RegistGetFunc(baseUrl string, f interface{}) {
 
 		rspData, err := o.handle(ctx, funcInfo, []byte(data))
 		if err != nil {
-			logrus.WithField("error", eris.ToJSON(err, true)).Error()
+			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 
 		w.Header().Set("Accept", "application/json")
 		_, err = w.Write(rspData)
 		if err != nil {
-			logrus.WithField("error", eris.ToJSON(err, true)).Error()
+			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 	})
@@ -71,14 +71,14 @@ func (o *WebServer) RegistPostFunc(baseUrl string, f interface{}) {
 
 		rspData, err := o.handle(ctx, funcInfo, []byte(data))
 		if err != nil {
-			logrus.WithField("error", eris.ToJSON(err, true)).Error()
+			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 
 		w.Header().Set("Accept", "application/json")
 		_, err = w.Write(rspData)
 		if err != nil {
-			logrus.WithField("error", eris.ToJSON(err, true)).Error()
+			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
 			return
 		}
 	})
