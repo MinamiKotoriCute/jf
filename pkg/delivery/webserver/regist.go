@@ -32,6 +32,7 @@ func (o *WebServer) RegistGetFunc(baseUrl string, f interface{}) {
 		}
 
 		w.Header().Set("Accept", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		_, err = w.Write(rspData)
 		if err != nil {
 			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
@@ -76,6 +77,7 @@ func (o *WebServer) RegistPostFunc(baseUrl string, f interface{}) {
 		}
 
 		w.Header().Set("Accept", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		_, err = w.Write(rspData)
 		if err != nil {
 			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
