@@ -92,3 +92,11 @@ func (o *WebServer) RegistPostFuncs(baseUrl string, f ...interface{}) {
 		o.RegistPostFunc(baseUrl, v)
 	}
 }
+
+func (o *WebServer) RegistFileServer(baseUrl string, dir string) {
+	o.serveMux.Handle(baseUrl, http.FileServer(http.Dir(dir)))
+}
+
+func (o *WebServer) RegistFileServerStripPrefix(baseUrl string, dir string) {
+	o.serveMux.Handle(baseUrl, http.StripPrefix(baseUrl, http.FileServer(http.Dir(dir))))
+}
