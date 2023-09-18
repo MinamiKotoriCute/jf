@@ -17,7 +17,7 @@ func (o *WebServer) RegistGetFunc(baseUrl string, f interface{}) {
 	}
 
 	pattern := baseUrl + "/" + funcInfo.ReqName
-	o.serveMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+	o.ServeMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		data := r.URL.Query().Get("data")
 		ctx, err := o.GetHandleContextFunc(r)
 		if err != nil {
@@ -56,7 +56,7 @@ func (o *WebServer) RegistPostFunc(baseUrl string, f interface{}) {
 	}
 
 	pattern := baseUrl + "/" + funcInfo.ReqName
-	o.serveMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+	o.ServeMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -91,12 +91,4 @@ func (o *WebServer) RegistPostFuncs(baseUrl string, f ...interface{}) {
 	for _, v := range f {
 		o.RegistPostFunc(baseUrl, v)
 	}
-}
-
-func (o *WebServer) RegistFileServer(baseUrl string, dir string) {
-	o.serveMux.Handle(baseUrl, http.FileServer(http.Dir(dir)))
-}
-
-func (o *WebServer) RegistFileServerStripPrefix(baseUrl string, dir string) {
-	o.serveMux.Handle(baseUrl, http.StripPrefix(baseUrl, http.FileServer(http.Dir(dir))))
 }

@@ -17,7 +17,7 @@ type CreateInternalErrorRspFuncType func(handleErr error, reqMessageName string)
 type WebServer struct {
 	mutex                      sync.Mutex
 	httpServer                 *http.Server
-	serveMux                   *http.ServeMux
+	ServeMux                   *http.ServeMux
 	OnHandleFinishedFunc       delivery.OnHandleFinishedFuncType
 	GetHandleContextFunc       GetHandleContextFuncType
 	CreateInternalErrorRspFunc CreateInternalErrorRspFuncType
@@ -25,7 +25,7 @@ type WebServer struct {
 
 func NewWebServer() *WebServer {
 	return &WebServer{
-		serveMux:             http.NewServeMux(),
+		ServeMux:             http.NewServeMux(),
 		GetHandleContextFunc: DefaultGetContext,
 	}
 }
@@ -40,7 +40,7 @@ func (o *WebServer) Start(addr string) error {
 
 	o.httpServer = &http.Server{
 		Addr:    addr,
-		Handler: o.serveMux,
+		Handler: o.ServeMux,
 	}
 
 	go func() {
