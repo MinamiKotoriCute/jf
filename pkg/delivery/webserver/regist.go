@@ -10,7 +10,7 @@ import (
 )
 
 // f type must be HandleFuncType
-func (o *WebServer) RegistFunc(baseUrl string, methodSelector func(string) bool, f interface{}) {
+func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interface{}) {
 	funcInfo, err := delivery.GetHandleFuncInfo(f)
 	if err != nil {
 		logrus.WithField("error", eris.ToJSON(err, true)).Fatal()
@@ -18,7 +18,7 @@ func (o *WebServer) RegistFunc(baseUrl string, methodSelector func(string) bool,
 
 	pattern := baseUrl + "/" + funcInfo.ReqName
 	o.ServeMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-		if !methodSelector(r.Method) {
+		if !httpMethod.Match(r.Method) {
 			return
 		}
 
@@ -34,6 +34,13 @@ func (o *WebServer) RegistFunc(baseUrl string, methodSelector func(string) bool,
 			}
 
 			data = string(tempData)
+		} else if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", httpMethod.ToString())
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			return
+		} else {
+			return
 		}
 
 		ctx, err := o.GetHandleContextFunc(r)
@@ -59,8 +66,8 @@ func (o *WebServer) RegistFunc(baseUrl string, methodSelector func(string) bool,
 }
 
 // f type must be HandleFuncType
-func (o *WebServer) RegistFuncs(baseUrl string, methodSelector func(string) bool, f ...interface{}) {
+func (o *WebServer) RegistFuncs(baseUrl string, httpMethod HttpMethod, f ...interface{}) {
 	for _, v := range f {
-		o.RegistFunc(baseUrl, methodSelector, v)
+		o.RegistFunc(baseUrl, httpMethod, v)
 	}
 }
