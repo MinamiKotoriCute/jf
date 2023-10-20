@@ -19,6 +19,7 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interfac
 	pattern := baseUrl + "/" + funcInfo.ReqName
 	o.ServeMux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		if !httpMethod.Match(r.Method) {
+			http.Error(w, "method not support", http.StatusBadRequest)
 			return
 		}
 
@@ -30,6 +31,7 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interfac
 			tempData, err := io.ReadAll(r.Body)
 			if err != nil {
 				logrus.WithField("error", eris.ToJSON(err, true)).Error()
+				http.Error(w, "error", http.StatusBadRequest)
 				return
 			}
 
@@ -40,18 +42,21 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interfac
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 			return
 		} else {
+			http.Error(w, "method not support", http.StatusBadRequest)
 			return
 		}
 
 		ctx, err := o.GetHandleContextFunc(r)
 		if err != nil {
 			logrus.WithField("error", eris.ToJSON(err, true)).Error()
+			http.Error(w, "error", http.StatusBadRequest)
 			return
 		}
 
 		rspData, err := o.handle(ctx, funcInfo, []byte(data))
 		if err != nil {
 			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
+			http.Error(w, "error", http.StatusBadRequest)
 			return
 		}
 
@@ -60,6 +65,7 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interfac
 		_, err = w.Write(rspData)
 		if err != nil {
 			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
+			http.Error(w, "error", http.StatusBadRequest)
 			return
 		}
 	})
