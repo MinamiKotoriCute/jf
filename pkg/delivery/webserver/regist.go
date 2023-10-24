@@ -46,7 +46,7 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interfac
 			return
 		}
 
-		ctx, err := o.GetHandleContextFunc(r)
+		ctx, err := o.GetHandleContextFunc(r, funcInfo)
 		if err != nil {
 			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			http.Error(w, "error", http.StatusBadRequest)
