@@ -12,7 +12,10 @@ import (
 func (o *WebServer) handle(ctx context.Context, funcInfo *delivery.HandleFuncInfo, data []byte) ([]byte, error) {
 	req := funcInfo.NewReq()
 	if len(data) != 0 {
-		if err := protojson.Unmarshal(data, req); err != nil {
+		err := protojson.UnmarshalOptions{
+			DiscardUnknown: true,
+		}.Unmarshal(data, req)
+		if err != nil {
 			return nil, eris.Wrap(err, "")
 		}
 	}
