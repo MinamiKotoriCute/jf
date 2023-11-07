@@ -11,7 +11,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type GetHandleContextFuncType func(r *http.Request, funcInfo *delivery.HandleFuncInfo) (context.Context, error)
+type ContextCloseFuncType func()
+type GetHandleContextFuncType func(r *http.Request, funcInfo *delivery.HandleFuncInfo) (context.Context, ContextCloseFuncType, error)
 type CreateInternalErrorRspFuncType func(handleErr error, reqMessageName string) (proto.Message, bool, error)
 
 type WebServer struct {

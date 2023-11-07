@@ -13,7 +13,7 @@ import (
 )
 
 type OnConnctedFuncType func(conn net.Conn) error
-type OnDisconnctedFuncType func(conn net.Conn)
+type OnDisconnctedFuncType func(conn net.Conn, closeReason string)
 type OnReceiveFuncType func(conn net.Conn, data []byte) ([]byte, error)
 
 type TcpServer struct {
@@ -23,7 +23,7 @@ type TcpServer struct {
 	onConnctedFunc    OnConnctedFuncType
 	onDisconnctedFunc OnDisconnctedFuncType
 	onReceiveFunc     OnReceiveFuncType
-	conns             map[net.Conn]interface{}
+	conns             map[net.Conn]*Connection
 	connsLock         sync.RWMutex
 }
 
@@ -44,7 +44,7 @@ func NewTcpServer(config *Config,
 		onConnctedFunc:    onConnctedFunc,
 		onDisconnctedFunc: onDisconnctedFunc,
 		onReceiveFunc:     onReceiveFunc,
-		conns:             make(map[net.Conn]interface{}),
+		conns:             make(map[net.Conn]*Connection),
 	}
 }
 
@@ -69,10 +69,8 @@ func (o *TcpServer) Stop(ctx context.Context) error {
 	}
 
 	o.connsLock.Lock()
-	for conn := range o.conns {
-		if tcpConn, ok := conn.(*net.TCPConn); ok {
-			tcpConn.CloseRead()
-		}
+	for _, connection := range o.conns {
+		connection.DisconnectFromServer("tcp server stop")
 	}
 	o.connsLock.Unlock()
 	o.wg.Wait()
@@ -85,7 +83,14 @@ func (o *TcpServer) serve() {
 
 	for {
 		conn, err := o.listen.Accept()
-		o.conns[conn] = nil
+		connection := &Connection{
+			Conn: conn,
+		}
+
+		o.connsLock.Lock()
+		o.conns[conn] = connection
+		o.connsLock.Unlock()
+
 		if err != nil {
 			if !errors.Is(err, net.ErrClosed) {
 				logrus.WithField("error", eris.ToJSON(err, true)).Warning()
@@ -95,22 +100,23 @@ func (o *TcpServer) serve() {
 
 		o.wg.Add(1)
 		go func() {
-			if err := o.handleConnection(conn); err != nil {
+			if err := o.handleConnection(connection); err != nil {
 				logrus.WithField("error", eris.ToJSON(err, true)).Warning()
 			}
 		}()
 	}
 }
 
-func (o *TcpServer) handleConnection(conn net.Conn) error {
+func (o *TcpServer) handleConnection(connection *Connection) error {
 	defer func() {
 		o.connsLock.Lock()
-		delete(o.conns, conn)
+		delete(o.conns, connection.Conn)
 		o.connsLock.Unlock()
-		conn.Close()
+		connection.Conn.Close()
 		o.wg.Done()
 	}()
 
+	conn := connection.Conn
 	readBuffer := make([]byte, o.config.ReadBufferSize)
 	tempBuffer := []byte{}
 	packetSize := uint64(0)
@@ -123,7 +129,10 @@ func (o *TcpServer) handleConnection(conn net.Conn) error {
 
 	defer func() {
 		if o.onDisconnctedFunc != nil {
-			o.onDisconnctedFunc(conn)
+			if connection.CloseReason == "" {
+				connection.CloseReason = "close by client"
+			}
+			o.onDisconnctedFunc(conn, connection.CloseReason)
 		}
 	}()
 
@@ -133,6 +142,7 @@ func (o *TcpServer) handleConnection(conn net.Conn) error {
 			if err == io.EOF {
 				return nil
 			}
+			connection.CloseReason = "handle read error"
 			return eris.Wrap(err, "")
 		}
 
@@ -148,6 +158,7 @@ func (o *TcpServer) handleConnection(conn net.Conn) error {
 		if packetSize == 0 {
 			packetSize = binary.BigEndian.Uint64(tempBuffer[:8])
 			if packetSize > uint64(o.config.PacketSizeLimit)-8 {
+				connection.CloseReason = "handle read error"
 				return eris.Errorf("packet size too large. size=%d", packetSize)
 			}
 		}
@@ -157,6 +168,7 @@ func (o *TcpServer) handleConnection(conn net.Conn) error {
 		}
 
 		if rspData, err := o.onReceiveFunc(conn, tempBuffer[8:packetSize+8]); err != nil {
+			connection.CloseReason = "handle func error"
 			return err
 		} else {
 			o.SendToUser(conn, rspData)
@@ -185,4 +197,12 @@ func wrapPacket(data []byte) []byte {
 	binary.BigEndian.PutUint64(writeBuffer, uint64(len(data)))
 	writeBuffer = append(writeBuffer, data...)
 	return writeBuffer
+}
+
+func (o *TcpServer) DisconnectConnection(conn net.Conn, reason string) {
+	o.connsLock.Lock()
+	defer o.connsLock.Unlock()
+	if connection, ok := o.conns[conn]; ok {
+		connection.DisconnectFromServer(reason)
+	}
 }

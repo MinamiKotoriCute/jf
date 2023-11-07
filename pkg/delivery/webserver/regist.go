@@ -46,12 +46,13 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interfac
 			return
 		}
 
-		ctx, err := o.GetHandleContextFunc(r, funcInfo)
+		ctx, ctxCloseFunc, err := o.GetHandleContextFunc(r, funcInfo)
 		if err != nil {
 			logrus.WithField("error", eris.ToJSON(err, true)).Error()
 			http.Error(w, "error", http.StatusBadRequest)
 			return
 		}
+		defer ctxCloseFunc()
 
 		rspData, err := o.handle(ctx, funcInfo, []byte(data))
 		if err != nil {
