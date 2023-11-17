@@ -14,6 +14,7 @@ import (
 type ContextCloseFuncType func()
 type GetHandleContextFuncType func(r *http.Request, funcInfo *delivery.HandleFuncInfo) (context.Context, ContextCloseFuncType, error)
 type CreateInternalErrorRspFuncType func(handleErr error, reqMessageName string) (proto.Message, bool, error)
+type MiddlewareFuncType func(w http.ResponseWriter, r *http.Request, funcInfo *delivery.HandleFuncInfo) bool
 
 type WebServer struct {
 	mutex                      sync.Mutex

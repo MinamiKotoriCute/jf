@@ -95,3 +95,32 @@ func GetHandleFuncInfo(f interface{}) (*HandleFuncInfo, error) {
 		Call:    call,
 	}, nil
 }
+
+func GetHandleFuncInfoByFunc[ReqT proto.Message, RspT proto.Message](handle func(context.Context, ReqT) (RspT, error)) *HandleFuncInfo {
+	f := func(ctx context.Context, msg proto.Message) (proto.Message, error) {
+		req, ok := msg.(ReqT)
+		if !ok {
+			return nil, eris.New("msg type error")
+		}
+
+		rsp, err := handle(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+
+		return rsp, nil
+	}
+
+	var reqPointer ReqT
+	reqPbName := reqPointer.ProtoReflect().Descriptor().FullName()
+
+	newReq := func() proto.Message {
+		return reqPointer.ProtoReflect().New().Interface()
+	}
+
+	return &HandleFuncInfo{
+		ReqName: string(reqPbName),
+		Call:    f,
+		NewReq:  newReq,
+	}
+}

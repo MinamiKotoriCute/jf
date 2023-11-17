@@ -10,7 +10,7 @@ import (
 )
 
 // f type must be HandleFuncType
-func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interface{}) {
+func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, middlewares []MiddlewareFuncType, f interface{}) {
 	funcInfo, err := delivery.GetHandleFuncInfo(f)
 	if err != nil {
 		logrus.WithField("error", eris.ToJSON(err, true)).Fatal()
@@ -36,13 +36,25 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interfac
 			}
 
 			data = string(tempData)
+
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 		} else if r.Method == "OPTIONS" {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", httpMethod.ToString())
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			return
 		} else {
 			http.Error(w, "method not support", http.StatusBadRequest)
+			return
+		}
+
+		for _, v := range middlewares {
+			isContinus := v(w, r, funcInfo)
+			if !isContinus {
+				return
+			}
+		}
+
+		if r.Method == "OPTIONS" {
 			return
 		}
 
@@ -73,8 +85,8 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, f interfac
 }
 
 // f type must be HandleFuncType
-func (o *WebServer) RegistFuncs(baseUrl string, httpMethod HttpMethod, f ...interface{}) {
+func (o *WebServer) RegistFuncs(baseUrl string, httpMethod HttpMethod, middlewares []MiddlewareFuncType, f ...interface{}) {
 	for _, v := range f {
-		o.RegistFunc(baseUrl, httpMethod, v)
+		o.RegistFunc(baseUrl, httpMethod, middlewares, v)
 	}
 }
