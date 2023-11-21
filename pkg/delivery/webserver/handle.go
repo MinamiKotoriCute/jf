@@ -20,20 +20,19 @@ func (o *WebServer) handle(ctx context.Context, funcInfo *delivery.HandleFuncInf
 		}
 	}
 
-	rsp, err := funcInfo.Call(ctx, req)
-	if err != nil {
+	rsp, callErr := funcInfo.Call(ctx, req)
+	isExpectedError := true
+	if callErr != nil {
 		if o.CreateInternalErrorRspFunc == nil {
-			return nil, err
+			return nil, callErr
 		}
 
-		if rsp2, isExpectedError, err2 := o.CreateInternalErrorRspFunc(err, string(req.ProtoReflect().Descriptor().FullName())); err2 != nil {
+		if rsp2, isExpectedError2, err2 := o.CreateInternalErrorRspFunc(callErr, string(req.ProtoReflect().Descriptor().FullName())); err2 != nil {
 			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err2, true)).Warning()
-			return nil, eris.Wrap(err, "")
+			return nil, eris.Wrap(callErr, "")
 		} else {
-			if !isExpectedError {
-				logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Warning()
-			}
 			rsp = rsp2
+			isExpectedError = isExpectedError2
 		}
 	}
 
@@ -46,7 +45,7 @@ func (o *WebServer) handle(ctx context.Context, funcInfo *delivery.HandleFuncInf
 	}
 
 	if o.OnHandleFinishedFunc != nil {
-		o.OnHandleFinishedFunc(ctx, req, rsp)
+		o.OnHandleFinishedFunc(ctx, req, rsp, callErr, isExpectedError)
 	}
 
 	return rspData, nil

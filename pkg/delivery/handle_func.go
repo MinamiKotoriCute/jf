@@ -10,7 +10,7 @@ import (
 
 type HandleContextKey string
 type HandleFuncType[ReqT proto.Message, RspT proto.Message] func(ctx context.Context, req ReqT) (RspT, error)
-type OnHandleFinishedFuncType func(ctx context.Context, req, rsp proto.Message)
+type OnHandleFinishedFuncType func(ctx context.Context, req, rsp proto.Message, callErr error, isExpectedError bool)
 
 type HandleFuncInfo struct {
 	ReqName string
