@@ -2,13 +2,13 @@ package protobufhandler
 
 import (
 	"github.com/MinamiKotoriCute/jf/pkg/delivery"
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 )
 
 func (o *ProtobufHandler) Regist(f interface{}) error {
 	funcInfo, err := delivery.GetHandleFuncInfo(f)
 	if err != nil {
-		return eris.Wrap(err, "")
+		return serr.Wrap(err)
 	}
 
 	o.handleFuncs[funcInfo.ReqName] = funcInfo

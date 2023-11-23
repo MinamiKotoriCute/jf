@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/MinamiKotoriCute/jf/pkg/delivery"
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -17,7 +17,7 @@ func Call[RspT proto.Message, ReqT proto.Message](o *ProtobufHandler, ctx contex
 
 	rsp, ok := rspData.(RspT)
 	if !ok {
-		return a, eris.New("response type not match")
+		return a, serr.New("response type not match")
 	}
 
 	return rsp, nil
@@ -26,7 +26,7 @@ func Call[RspT proto.Message, ReqT proto.Message](o *ProtobufHandler, ctx contex
 func (o *ProtobufHandler) Call(ctx context.Context, req proto.Message) (proto.Message, error) {
 	funcInfo, ok := o.handleFuncs[string(req.ProtoReflect().Descriptor().FullName())]
 	if !ok {
-		return nil, eris.New("handle function not found")
+		return nil, serr.New("handle function not found")
 	}
 
 	return funcInfo.Call(ctx, req)

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/MinamiKotoriCute/jf/pkg/delivery"
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,7 +13,7 @@ import (
 func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, middlewares []MiddlewareFuncType, f interface{}) {
 	funcInfo, err := delivery.GetHandleFuncInfo(f)
 	if err != nil {
-		logrus.WithField("error", eris.ToJSON(err, true)).Fatal()
+		logrus.WithField("error", serr.ToJSON(err, true)).Fatal()
 	}
 
 	pattern := baseUrl + "/" + funcInfo.ReqName
@@ -30,7 +30,7 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, middleware
 			defer r.Body.Close()
 			tempData, err := io.ReadAll(r.Body)
 			if err != nil {
-				logrus.WithField("error", eris.ToJSON(err, true)).Error()
+				logrus.WithField("error", serr.ToJSON(err, true)).Error()
 				http.Error(w, "error", http.StatusBadRequest)
 				return
 			}
@@ -60,7 +60,7 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, middleware
 
 		ctx, ctxCloseFunc, err := o.GetHandleContextFunc(r, funcInfo)
 		if err != nil {
-			logrus.WithField("error", eris.ToJSON(err, true)).Error()
+			logrus.WithField("error", serr.ToJSON(err, true)).Error()
 			http.Error(w, "error", http.StatusBadRequest)
 			return
 		}
@@ -68,7 +68,7 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, middleware
 
 		rspData, err := o.handle(ctx, funcInfo, []byte(data))
 		if err != nil {
-			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
+			logrus.WithContext(ctx).WithField("error", serr.ToJSON(err, true)).Error()
 			http.Error(w, "error", http.StatusBadRequest)
 			return
 		}
@@ -77,7 +77,7 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, middleware
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		_, err = w.Write(rspData)
 		if err != nil {
-			logrus.WithContext(ctx).WithField("error", eris.ToJSON(err, true)).Error()
+			logrus.WithContext(ctx).WithField("error", serr.ToJSON(err, true)).Error()
 			http.Error(w, "error", http.StatusBadRequest)
 			return
 		}

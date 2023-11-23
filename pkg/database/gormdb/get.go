@@ -3,7 +3,7 @@ package gormdb
 import (
 	"fmt"
 
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -13,12 +13,12 @@ func (o *GormDb[T]) connect(dbType T) error {
 	if t, ok := any(dbType).(DbTypeGetDsn); ok {
 		dsn = t.GetDsn(o.config)
 	} else {
-		return eris.New("dsn is empty")
+		return serr.New("dsn is empty")
 	}
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return eris.Wrapf(err, "dsn:%s", dsn)
+		return serr.Wrapf(err, "dsn:%s", dsn)
 	}
 
 	o.db[dbType] = db
@@ -31,7 +31,7 @@ func (o *GormDb[T]) createDatabaseIfNotExist(databaseName string) error {
 	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", databaseName)
 	result := defaultDb.Exec(sql)
 	if result.Error != nil {
-		eris.Wrapf(result.Error, "sql: %s", sql)
+		serr.Wrapf(result.Error, "sql: %s", sql)
 	}
 
 	return nil

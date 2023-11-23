@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 )
 
 func GetHttpQueryInt64(r *http.Request, key string, defaultValue int64) (int64, error) {
@@ -14,7 +14,7 @@ func GetHttpQueryInt64(r *http.Request, key string, defaultValue int64) (int64, 
 	}
 
 	if i, err := strconv.ParseInt(value, 10, 64); err != nil {
-		return 0, eris.Wrap(err, "")
+		return 0, serr.Wrap(err)
 	} else {
 		return i, nil
 	}

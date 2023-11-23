@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 )
 
 func GetOsEnvString(key string, defaultValue string) string {
@@ -19,7 +19,7 @@ func GetOsEnvInt(key string, defaultValue int) int {
 		if num, err := strconv.Atoi(value); err == nil {
 			return num
 		} else {
-			panic(eris.Wrapf(err, "key:%s value:%s", key, value))
+			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
 		}
 	}
 	return defaultValue
@@ -30,7 +30,7 @@ func GetOsEnvInt64(key string, defaultValue int64) int64 {
 		if num, err := strconv.ParseInt(value, 10, 64); err == nil {
 			return num
 		} else {
-			panic(eris.Wrapf(err, "key:%s value:%s", key, value))
+			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
 		}
 	}
 	return defaultValue
@@ -41,7 +41,7 @@ func GetOsEnvUInt64(key string, defaultValue uint64) uint64 {
 		if num, err := strconv.ParseUint(value, 10, 64); err == nil {
 			return num
 		} else {
-			panic(eris.Wrapf(err, "key:%s value:%s", key, value))
+			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
 		}
 	}
 	return defaultValue
@@ -52,7 +52,7 @@ func GetOsEnvBool(key string, defaultValue bool) bool {
 		if b, err := strconv.ParseBool(value); err == nil {
 			return b
 		} else {
-			panic(eris.Wrapf(err, "key:%s value:%s", key, value))
+			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
 		}
 	}
 	return defaultValue

@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/MinamiKotoriCute/jf/pkg/delivery"
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
@@ -37,7 +37,7 @@ func (o *WebServer) Start(addr string) error {
 	defer o.mutex.Unlock()
 
 	if o.httpServer != nil {
-		return eris.New("already start")
+		return serr.New("already start")
 	}
 
 	o.httpServer = &http.Server{
@@ -47,7 +47,7 @@ func (o *WebServer) Start(addr string) error {
 
 	go func() {
 		if err := o.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			logrus.WithField("error", eris.ToJSON(err, true)).Error()
+			logrus.WithField("error", serr.ToJSON(err, true)).Error()
 		}
 	}()
 
@@ -63,7 +63,7 @@ func (o *WebServer) Stop(ctx context.Context) error {
 	}
 
 	if err := o.httpServer.Shutdown(ctx); err != nil {
-		return eris.Wrapf(err, "shutdown fail")
+		return serr.Wrapf(err, "shutdown fail")
 	}
 
 	return nil

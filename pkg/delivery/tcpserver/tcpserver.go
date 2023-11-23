@@ -8,7 +8,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,7 +51,7 @@ func NewTcpServer(config *Config,
 func (o *TcpServer) Start(address string) error {
 	listen, err := net.Listen("tcp", address)
 	if err != nil {
-		return eris.Wrap(err, "")
+		return serr.Wrap(err)
 	}
 
 	o.listen = listen
@@ -65,7 +65,7 @@ func (o *TcpServer) Start(address string) error {
 // wait all connection current handle finished
 func (o *TcpServer) Stop(ctx context.Context) error {
 	if err := o.listen.Close(); err != nil {
-		return eris.Wrap(err, "")
+		return serr.Wrap(err)
 	}
 
 	o.connsLock.Lock()
@@ -93,7 +93,7 @@ func (o *TcpServer) serve() {
 
 		if err != nil {
 			if !errors.Is(err, net.ErrClosed) {
-				logrus.WithField("error", eris.ToJSON(err, true)).Warning()
+				logrus.WithField("error", serr.ToJSON(err, true)).Warning()
 			}
 			break
 		}
@@ -101,7 +101,7 @@ func (o *TcpServer) serve() {
 		o.wg.Add(1)
 		go func() {
 			if err := o.handleConnection(connection); err != nil {
-				logrus.WithField("error", eris.ToJSON(err, true)).Warning()
+				logrus.WithField("error", serr.ToJSON(err, true)).Warning()
 			}
 		}()
 	}
@@ -143,11 +143,11 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 				return nil
 			}
 			connection.CloseReason = "handle read error"
-			return eris.Wrap(err, "")
+			return serr.Wrap(err)
 		}
 
 		if len(tempBuffer)+n > int(o.config.PacketSizeLimit) {
-			return eris.Errorf("packet size too large. size=%d", len(tempBuffer)+n)
+			return serr.Errorf("packet size too large. size=%d", len(tempBuffer)+n)
 		}
 
 		tempBuffer = append(tempBuffer, readBuffer[:n]...)
@@ -159,7 +159,7 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 			packetSize = binary.BigEndian.Uint64(tempBuffer[:8])
 			if packetSize > uint64(o.config.PacketSizeLimit)-8 {
 				connection.CloseReason = "handle read error"
-				return eris.Errorf("packet size too large. size=%d", packetSize)
+				return serr.Errorf("packet size too large. size=%d", packetSize)
 			}
 		}
 
@@ -186,7 +186,7 @@ func (o *TcpServer) SendToUser(conn net.Conn, data []byte) error {
 
 	writeBuffer := wrapPacket(data)
 	if _, err := conn.Write(writeBuffer); err != nil {
-		return eris.Wrap(err, "")
+		return serr.Wrap(err)
 	}
 
 	return nil

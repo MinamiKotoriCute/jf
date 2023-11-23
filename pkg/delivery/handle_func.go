@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/rotisserie/eris"
+	"github.com/MinamiKotoriCute/serr"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -21,32 +21,32 @@ type HandleFuncInfo struct {
 func IsHandleFuncType(f interface{}) error {
 	fType := reflect.TypeOf(f)
 	if fType.Kind() != reflect.Func {
-		return eris.New("f is not func")
+		return serr.New("f is not func")
 	}
 
 	if fType.NumIn() != 2 {
-		return eris.New("f in num error")
+		return serr.New("f in num error")
 	}
 
 	if fType.In(0) != reflect.TypeOf((*context.Context)(nil)).Elem() {
-		return eris.New("f in[0] type error")
+		return serr.New("f in[0] type error")
 	}
 
 	messageType := reflect.TypeOf((*proto.Message)(nil)).Elem()
 	if !fType.In(1).Implements(messageType) {
-		return eris.New("f in[1] type error")
+		return serr.New("f in[1] type error")
 	}
 
 	if fType.NumOut() != 2 {
-		return eris.New("f out num error")
+		return serr.New("f out num error")
 	}
 
 	if !fType.Out(0).Implements(messageType) {
-		return eris.New("f out[0] type error")
+		return serr.New("f out[0] type error")
 	}
 
 	if fType.Out(1) != reflect.TypeOf((*error)(nil)).Elem() {
-		return eris.New("f out[1] type error")
+		return serr.New("f out[1] type error")
 	}
 
 	return nil
@@ -100,7 +100,7 @@ func GetHandleFuncInfoByFunc[ReqT proto.Message, RspT proto.Message](handle func
 	f := func(ctx context.Context, msg proto.Message) (proto.Message, error) {
 		req, ok := msg.(ReqT)
 		if !ok {
-			return nil, eris.New("msg type error")
+			return nil, serr.New("msg type error")
 		}
 
 		rsp, err := handle(ctx, req)
