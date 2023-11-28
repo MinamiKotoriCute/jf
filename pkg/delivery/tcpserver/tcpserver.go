@@ -151,31 +151,36 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 		}
 
 		tempBuffer = append(tempBuffer, readBuffer[:n]...)
-		if len(tempBuffer) < 8 {
-			continue
-		}
 
-		if packetSize == 0 {
-			packetSize = binary.BigEndian.Uint64(tempBuffer[:8])
-			if packetSize > uint64(o.config.PacketSizeLimit)-8 {
-				connection.CloseReason = "handle read error"
-				return serr.Errorf("packet size too large. size=%d", packetSize)
+		for {
+			if packetSize == 0 {
+				if len(tempBuffer) < int(packetSize+8) {
+					break
+				}
+
+				packetSize = binary.BigEndian.Uint64(tempBuffer[:8])
+				if packetSize > uint64(o.config.PacketSizeLimit)-8 {
+					connection.CloseReason = "handle read error"
+					return serr.Errorf("packet size too large. size=%d", packetSize)
+				}
+
+				tempBuffer = tempBuffer[8:]
 			}
-		}
 
-		if len(tempBuffer) < int(packetSize+8) {
-			continue
-		}
+			if len(tempBuffer) < int(packetSize) {
+				break
+			}
 
-		if rspData, err := o.onReceiveFunc(conn, tempBuffer[8:packetSize+8]); err != nil {
-			connection.CloseReason = "handle func error"
-			return err
-		} else {
-			o.SendToUser(conn, rspData)
-		}
+			if rspData, err := o.onReceiveFunc(conn, tempBuffer[:packetSize]); err != nil {
+				connection.CloseReason = "handle func error"
+				return err
+			} else {
+				o.SendToUser(conn, rspData)
+			}
 
-		tempBuffer = tempBuffer[packetSize+8:]
-		packetSize = 0
+			tempBuffer = tempBuffer[packetSize:]
+			packetSize = 0
+		}
 	}
 }
 
