@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"errors"
 	"io"
 	"net/http"
 
@@ -60,6 +61,13 @@ func (o *WebServer) RegistFunc(baseUrl string, httpMethod HttpMethod, middleware
 
 		ctx, ctxCloseFunc, err := o.GetHandleContextFunc(r, funcInfo)
 		if err != nil {
+			var httpErr *HttpError
+			if errors.As(err, &httpErr) {
+				logrus.WithField("error", serr.ToJSON(err, true)).Info("GetHandleContextFunc fail")
+				http.Error(w, httpErr.Message, httpErr.StatusCode)
+				return
+			}
+
 			logrus.WithField("error", serr.ToJSON(err, true)).Error()
 			http.Error(w, "error", http.StatusBadRequest)
 			return
