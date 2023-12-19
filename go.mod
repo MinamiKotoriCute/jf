@@ -3,6 +3,7 @@ module github.com/MinamiKotoriCute/jf
 go 1.21.3
 
 require (
+	github.com/DataDog/gostackparse v0.7.0
 	github.com/MinamiKotoriCute/serr v0.0.1
 	github.com/sirupsen/logrus v1.9.3
 	google.golang.org/protobuf v1.31.0

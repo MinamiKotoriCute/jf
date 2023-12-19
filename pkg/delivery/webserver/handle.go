@@ -20,7 +20,7 @@ func (o *WebServer) handle(ctx context.Context, funcInfo *delivery.HandleFuncInf
 		}
 	}
 
-	rsp, callErr := funcInfo.Call(ctx, req)
+	rsp, callErr := funcInfo.CallHandlePanic(ctx, req)
 	isExpectedError := true
 	if callErr != nil {
 		if o.CreateInternalErrorRspFunc == nil {

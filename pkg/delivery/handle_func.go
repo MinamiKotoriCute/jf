@@ -1,9 +1,12 @@
 package delivery
 
 import (
+	"bytes"
 	"context"
 	"reflect"
+	"runtime/debug"
 
+	"github.com/DataDog/gostackparse"
 	"github.com/MinamiKotoriCute/serr"
 	"google.golang.org/protobuf/proto"
 )
@@ -16,6 +19,24 @@ type HandleFuncInfo struct {
 	ReqName string
 	NewReq  func() proto.Message
 	Call    func(context.Context, proto.Message) (proto.Message, error)
+}
+
+func (o *HandleFuncInfo) CallHandlePanic(ctx context.Context, req proto.Message) (rsp proto.Message, err error) {
+	defer func() {
+		if v := recover(); v != nil {
+			stack := debug.Stack()
+			goroutines, _ := gostackparse.Parse(bytes.NewReader(stack))
+
+			rsp = nil
+			err = serr.Errors(map[string]interface{}{
+				"goroutines": goroutines,
+				"value":      v,
+			}, "panic")
+		}
+	}()
+
+	rsp, err = o.Call(ctx, req)
+	return
 }
 
 func IsHandleFuncType(f interface{}) error {

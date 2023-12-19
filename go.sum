@@ -1,3 +1,5 @@
+github.com/DataDog/gostackparse v0.7.0 h1:i7dLkXHvYzHV308hnkvVGDL3BR4FWl7IsXNPz/IGQh4=
+github.com/DataDog/gostackparse v0.7.0/go.mod h1:lTfqcJKqS9KnXQGnyQMCugq3u1FP6UZMfWR0aitKFMM=
 github.com/MinamiKotoriCute/serr v0.0.1 h1:BKk8JUY6/MPh58mI6fJ5zJFdt4Wrhn/Y/vmrqFope/M=
 github.com/MinamiKotoriCute/serr v0.0.1/go.mod h1:Q5xEfHf9FzSkXm2PdU3iIcu9nLH1lv4M1miipIXDyWk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
