@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"syscall"
 
 	"github.com/MinamiKotoriCute/serr"
 	"github.com/sirupsen/logrus"
@@ -123,6 +124,7 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 
 	if o.onConnctedFunc != nil {
 		if err := o.onConnctedFunc(conn); err != nil {
+			connection.CloseReason = "onConnctedFunc fail"
 			return err
 		}
 	}
@@ -130,7 +132,7 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 	defer func() {
 		if o.onDisconnctedFunc != nil {
 			if connection.CloseReason == "" {
-				connection.CloseReason = "close by client"
+				connection.CloseReason = "unknown"
 			}
 			o.onDisconnctedFunc(conn, connection.CloseReason)
 		}
@@ -140,13 +142,19 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 		n, err := conn.Read(readBuffer)
 		if err != nil {
 			if err == io.EOF {
+				connection.CloseReason = "close by client"
 				return nil
+			}
+			if errors.Is(err, syscall.ECONNRESET) {
+				connection.CloseReason = "close by client reset"
+				return nil // example: read tcp 10.88.1.26:8081->10.140.0.19:27151: read: connection reset by peer
 			}
 			connection.CloseReason = "handle read error"
 			return serr.Wrap(err)
 		}
 
 		if len(tempBuffer)+n > int(o.config.PacketSizeLimit) {
+			connection.CloseReason = "handle read error"
 			return serr.Errorf("packet size too large. size=%d", len(tempBuffer)+n)
 		}
 
