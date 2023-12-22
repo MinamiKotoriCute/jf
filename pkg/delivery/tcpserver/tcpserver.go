@@ -145,6 +145,10 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 				connection.CloseReason = "close by client"
 				return nil
 			}
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				connection.CloseReason = "close by client timeout"
+				return nil // read tcp 10.88.1.32:8081->10.140.0.19:17449: read: connection timed out
+			}
 			if errors.Is(err, syscall.ECONNRESET) {
 				connection.CloseReason = "close by client reset"
 				return nil // example: read tcp 10.88.1.26:8081->10.140.0.19:27151: read: connection reset by peer
