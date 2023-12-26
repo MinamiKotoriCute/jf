@@ -142,7 +142,9 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 		n, err := conn.Read(readBuffer)
 		if err != nil {
 			if err == io.EOF {
-				connection.CloseReason = "close by client at read"
+				if connection.CloseReason == "" {
+					connection.CloseReason = "close by client at read"
+				}
 				return nil
 			}
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
