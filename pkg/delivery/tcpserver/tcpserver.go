@@ -142,15 +142,15 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 		n, err := conn.Read(readBuffer)
 		if err != nil {
 			if err == io.EOF {
-				connection.CloseReason = "close by client"
+				connection.CloseReason = "close by client at read"
 				return nil
 			}
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-				connection.CloseReason = "close by client timeout"
+				connection.CloseReason = "close by client at read timeout"
 				return nil // read tcp 10.88.1.32:8081->10.140.0.19:17449: read: connection timed out
 			}
 			if errors.Is(err, syscall.ECONNRESET) {
-				connection.CloseReason = "close by client reset"
+				connection.CloseReason = "close by client at read reset"
 				return nil // example: read tcp 10.88.1.26:8081->10.140.0.19:27151: read: connection reset by peer
 			}
 			connection.CloseReason = "handle read error"
@@ -203,6 +203,16 @@ func (o *TcpServer) SendToUser(conn net.Conn, data []byte) error {
 
 	writeBuffer := wrapPacket(data)
 	if _, err := conn.Write(writeBuffer); err != nil {
+		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+			// example: write tcp 10.88.1.32:8081->10.88.1.1:2890: write: connection timed out
+			o.DisconnectConnection(conn, "close by client at write timeout")
+		} else if errors.Is(err, syscall.EPIPE) {
+			// example: write tcp 10.88.1.32:8081->10.140.0.19:47207: write: broken pipe
+			o.DisconnectConnection(conn, "close by client at write broken")
+		} else {
+			o.DisconnectConnection(conn, "handle write error")
+		}
+
 		return serr.Wrap(err)
 	}
 
