@@ -94,7 +94,7 @@ func (o *TcpServer) serve() {
 
 		if err != nil {
 			if !errors.Is(err, net.ErrClosed) {
-				logrus.WithField("error", serr.ToJSON(err, true)).Warning()
+				logrus.WithField("error", serr.ToJSON(err, true)).Warning("tcp server accept error")
 			}
 			break
 		}
@@ -102,7 +102,7 @@ func (o *TcpServer) serve() {
 		o.wg.Add(1)
 		go func() {
 			if err := o.handleConnection(connection); err != nil {
-				logrus.WithField("error", serr.ToJSON(err, true)).Warning()
+				logrus.WithField("error", serr.ToJSON(err, true)).Warning("tcp server handle connection error")
 			}
 		}()
 	}
