@@ -11,3 +11,7 @@ func NewProtobufHandler() *ProtobufHandler {
 		handleFuncs: make(map[string]*delivery.HandleFuncInfo),
 	}
 }
+
+func (o *ProtobufHandler) GetHandlers() map[string]*delivery.HandleFuncInfo {
+	return o.handleFuncs
+}
