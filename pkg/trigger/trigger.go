@@ -11,18 +11,31 @@ import (
 type HandleFunc func() error
 
 type Trigger struct {
-	done chan struct{}
-	wg   sync.WaitGroup
+	done     chan struct{}
+	wg       sync.WaitGroup
+	duration time.Duration
+	name     string
+	handle   HandleFunc
 }
 
-func (o *Trigger) Start(d time.Duration, name string, handle HandleFunc) error {
+func NewTrigger(duration time.Duration,
+	name string,
+	handle HandleFunc) *Trigger {
+	return &Trigger{
+		duration: duration,
+		name:     name,
+		handle:   handle,
+	}
+}
+
+func (o *Trigger) Start() error {
 	o.wg.Add(1)
 	o.done = make(chan struct{})
 
 	go func() {
 		defer o.wg.Done()
 
-		ticker := time.NewTicker(d)
+		ticker := time.NewTicker(o.duration)
 		defer ticker.Stop()
 
 		for {
@@ -30,12 +43,12 @@ func (o *Trigger) Start(d time.Duration, name string, handle HandleFunc) error {
 			case <-o.done:
 				return
 			case <-ticker.C:
-				if err := handle(); err != nil {
+				if err := o.handle(); err != nil {
 					fields := logrus.Fields{
 						"error": serr.ToJSON(err, true),
 					}
-					if name != "" {
-						fields["name"] = name
+					if o.name != "" {
+						fields["name"] = o.name
 					}
 					logrus.WithFields(fields).Warning("trigger handle fail")
 				}
@@ -54,4 +67,8 @@ func (o *Trigger) Stop() {
 	close(o.done)
 	o.done = nil
 	o.wg.Wait()
+}
+
+func (o *Trigger) Name() string {
+	return o.name
 }
