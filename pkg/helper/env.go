@@ -3,6 +3,7 @@ package helper
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/MinamiKotoriCute/serr"
 )
@@ -54,6 +55,13 @@ func GetOsEnvBool(key string, defaultValue bool) bool {
 		} else {
 			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
 		}
+	}
+	return defaultValue
+}
+
+func GetOsEnvSliceString(key string, defaultValue []string, separator string) []string {
+	if value, ok := os.LookupEnv(key); ok {
+		return strings.Split(value, separator)
 	}
 	return defaultValue
 }
