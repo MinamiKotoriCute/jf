@@ -65,3 +65,14 @@ func GetOsEnvSliceString(key string, defaultValue []string, separator string) []
 	}
 	return defaultValue
 }
+
+func GetOsEnvMapKeyString(key string, defaultValue map[string]struct{}, separator string) map[string]struct{} {
+	if value, ok := os.LookupEnv(key); ok {
+		ret := make(map[string]struct{})
+		for _, v := range strings.Split(value, separator) {
+			ret[v] = struct{}{}
+		}
+		return ret
+	}
+	return defaultValue
+}
