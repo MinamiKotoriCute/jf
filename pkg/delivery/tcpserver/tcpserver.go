@@ -20,6 +20,7 @@ type OnReceiveFuncType func(conn net.Conn, data []byte) ([]byte, error)
 type TcpServer struct {
 	listen            net.Listener
 	wg                sync.WaitGroup
+	serveWg           sync.WaitGroup
 	config            *Config
 	onConnctedFunc    OnConnctedFuncType
 	onDisconnctedFunc OnDisconnctedFuncType
@@ -56,7 +57,7 @@ func (o *TcpServer) Start(address string) error {
 	}
 
 	o.listen = listen
-	o.wg.Add(1)
+	o.serveWg.Add(1)
 	go o.serve()
 
 	return nil
@@ -68,6 +69,7 @@ func (o *TcpServer) Stop(ctx context.Context) error {
 	if err := o.listen.Close(); err != nil {
 		return serr.Wrap(err)
 	}
+	o.serveWg.Wait()
 
 	o.connsLock.Lock()
 	for _, connection := range o.conns {
@@ -80,7 +82,7 @@ func (o *TcpServer) Stop(ctx context.Context) error {
 }
 
 func (o *TcpServer) serve() {
-	defer o.wg.Done()
+	defer o.serveWg.Done()
 
 	for {
 		conn, err := o.listen.Accept()
@@ -88,16 +90,16 @@ func (o *TcpServer) serve() {
 			Conn: conn,
 		}
 
-		o.connsLock.Lock()
-		o.conns[conn] = connection
-		o.connsLock.Unlock()
-
 		if err != nil {
 			if !errors.Is(err, net.ErrClosed) {
 				logrus.WithField("error", serr.ToJSON(err, true)).Warning("tcp server accept error")
 			}
 			break
 		}
+
+		o.connsLock.Lock()
+		o.conns[conn] = connection
+		o.connsLock.Unlock()
 
 		o.wg.Add(1)
 		go func() {
