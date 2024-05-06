@@ -4,7 +4,7 @@ go 1.21.3
 
 require (
 	github.com/DataDog/gostackparse v0.7.0
-	github.com/MinamiKotoriCute/serr v0.0.4
+	github.com/MinamiKotoriCute/serr v0.0.7
 	github.com/sirupsen/logrus v1.9.3
 	google.golang.org/protobuf v1.31.0
 	gorm.io/driver/mysql v1.5.1

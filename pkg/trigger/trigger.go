@@ -1,30 +1,33 @@
 package trigger
 
 import (
+	"bytes"
+	"runtime/debug"
 	"sync"
 	"time"
 
+	"github.com/DataDog/gostackparse"
 	"github.com/MinamiKotoriCute/serr"
 	"github.com/sirupsen/logrus"
 )
 
-type HandleFunc func() error
+type HandlerFunc func() error
 
 type Trigger struct {
 	done     chan struct{}
 	wg       sync.WaitGroup
 	duration time.Duration
 	name     string
-	handle   HandleFunc
+	handler  HandlerFunc
 }
 
 func NewTrigger(duration time.Duration,
 	name string,
-	handle HandleFunc) *Trigger {
+	handler HandlerFunc) *Trigger {
 	return &Trigger{
 		duration: duration,
 		name:     name,
-		handle:   handle,
+		handler:  handler,
 	}
 }
 
@@ -43,7 +46,7 @@ func (o *Trigger) Start() error {
 			case <-o.done:
 				return
 			case <-ticker.C:
-				if err := o.handle(); err != nil {
+				if err := o.runHandlerAndCapturePanic(); err != nil {
 					fields := logrus.Fields{
 						"error": serr.ToJSON(err, true),
 					}
@@ -57,6 +60,23 @@ func (o *Trigger) Start() error {
 	}()
 
 	return nil
+}
+
+func (o *Trigger) runHandlerAndCapturePanic() (err error) {
+	defer func() {
+		if v := recover(); v != nil {
+			stack := debug.Stack()
+			goroutines, _ := gostackparse.Parse(bytes.NewReader(stack))
+
+			err = serr.Errors(map[string]interface{}{
+				"goroutines": goroutines,
+				"value":      v,
+			}, "panic")
+		}
+	}()
+
+	err = o.handler()
+	return
 }
 
 func (o *Trigger) Stop() {
