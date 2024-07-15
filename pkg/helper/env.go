@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MinamiKotoriCute/serr"
 )
@@ -73,6 +74,17 @@ func GetOsEnvMapKeyString(key string, defaultValue map[string]struct{}, separato
 			ret[v] = struct{}{}
 		}
 		return ret
+	}
+	return defaultValue
+}
+
+func GetOsEnvTime(key string, defaultValue time.Time, layout string) time.Time {
+	if value, ok := os.LookupEnv(key); ok {
+		if t, err := time.Parse(layout, value); err == nil {
+			return t
+		} else {
+			panic(serr.Wrapf(err, "key:%s value:%s layout:%s", key, value, layout))
+		}
 	}
 	return defaultValue
 }
