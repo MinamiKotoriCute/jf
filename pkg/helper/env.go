@@ -6,85 +6,132 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MinamiKotoriCute/serr"
+	"github.com/sirupsen/logrus"
 )
 
 func GetOsEnvString(key string, defaultValue string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
 	}
-	return defaultValue
+
+	return value
 }
 
 func GetOsEnvInt(key string, defaultValue int) int {
-	if value, ok := os.LookupEnv(key); ok {
-		if num, err := strconv.Atoi(value); err == nil {
-			return num
-		} else {
-			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
-		}
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
 	}
-	return defaultValue
+
+	num, err := strconv.Atoi(value)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"key":   key,
+			"value": value,
+			"err":   err,
+		}).Warning("GetOsEnvInt failed")
+		return defaultValue
+	}
+
+	return num
 }
 
 func GetOsEnvInt64(key string, defaultValue int64) int64 {
-	if value, ok := os.LookupEnv(key); ok {
-		if num, err := strconv.ParseInt(value, 10, 64); err == nil {
-			return num
-		} else {
-			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
-		}
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
 	}
-	return defaultValue
+
+	num, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"key":   key,
+			"value": value,
+			"err":   err,
+		}).Warning("GetOsEnvInt64 failed")
+		return defaultValue
+	}
+
+	return num
 }
 
 func GetOsEnvUInt64(key string, defaultValue uint64) uint64 {
-	if value, ok := os.LookupEnv(key); ok {
-		if num, err := strconv.ParseUint(value, 10, 64); err == nil {
-			return num
-		} else {
-			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
-		}
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
 	}
-	return defaultValue
+
+	num, err := strconv.ParseUint(value, 10, 64)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"key":   key,
+			"value": value,
+			"err":   err,
+		}).Warning("GetOsEnvUInt64 failed")
+		return defaultValue
+	}
+
+	return num
 }
 
 func GetOsEnvBool(key string, defaultValue bool) bool {
-	if value, ok := os.LookupEnv(key); ok {
-		if b, err := strconv.ParseBool(value); err == nil {
-			return b
-		} else {
-			panic(serr.Wrapf(err, "key:%s value:%s", key, value))
-		}
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
 	}
-	return defaultValue
+
+	b, err := strconv.ParseBool(value)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"key":   key,
+			"value": value,
+			"err":   err,
+		}).Warning("GetOsEnvBool failed")
+		return defaultValue
+	}
+
+	return b
 }
 
 func GetOsEnvSliceString(key string, defaultValue []string, separator string) []string {
-	if value, ok := os.LookupEnv(key); ok {
-		return strings.Split(value, separator)
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
 	}
-	return defaultValue
+
+	return strings.Split(value, separator)
 }
 
 func GetOsEnvMapKeyString(key string, defaultValue map[string]struct{}, separator string) map[string]struct{} {
-	if value, ok := os.LookupEnv(key); ok {
-		ret := make(map[string]struct{})
-		for _, v := range strings.Split(value, separator) {
-			ret[v] = struct{}{}
-		}
-		return ret
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
 	}
-	return defaultValue
+
+	m := make(map[string]struct{})
+	for _, v := range strings.Split(value, separator) {
+		m[v] = struct{}{}
+	}
+
+	return m
 }
 
 func GetOsEnvTime(key string, defaultValue time.Time, layout string) time.Time {
-	if value, ok := os.LookupEnv(key); ok {
-		if t, err := time.Parse(layout, value); err == nil {
-			return t
-		} else {
-			panic(serr.Wrapf(err, "key:%s value:%s layout:%s", key, value, layout))
-		}
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
 	}
-	return defaultValue
+
+	t, err := time.Parse(layout, value)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"key":   key,
+			"value": value,
+			"err":   err,
+		}).Warning("GetOsEnvTime failed")
+		return defaultValue
+	}
+
+	return t
 }
