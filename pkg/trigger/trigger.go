@@ -42,6 +42,10 @@ func (o *Trigger) Start() error {
 		defer ticker.Stop()
 
 		for {
+			if o.done == nil {
+				return
+			}
+
 			select {
 			case <-o.done:
 				return
