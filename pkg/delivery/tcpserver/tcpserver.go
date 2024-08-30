@@ -14,7 +14,7 @@ import (
 )
 
 type OnConnctedFuncType func(conn net.Conn) error
-type OnDisconnctedFuncType func(conn net.Conn, closeReason string)
+type OnDisconnctedFuncType func(conn net.Conn, closeReason string, closeType int32, closeReasonObject interface{})
 type OnReceiveFuncType func(conn net.Conn, data []byte) ([]byte, error)
 
 type TcpServer struct {
@@ -73,7 +73,7 @@ func (o *TcpServer) Stop(ctx context.Context) error {
 
 	o.connsLock.Lock()
 	for _, connection := range o.conns {
-		connection.DisconnectFromServer("tcp server stop")
+		connection.DisconnectFromServer("tcp server stop", int32(CloseTypeTcpServerStop), nil)
 	}
 	o.connsLock.Unlock()
 	o.wg.Wait()
@@ -129,17 +129,18 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 
 	if o.onConnctedFunc != nil {
 		if err := o.onConnctedFunc(conn); err != nil {
-			connection.CloseReason = "onConnctedFunc fail"
+			connection.AppendCloseReason("onConnctedFunc error", int32(CloseTypeError))
 			return err
 		}
 	}
 
 	defer func() {
 		if o.onDisconnctedFunc != nil {
-			if connection.CloseReason == "" {
+			if connection.CloseType == int32(CloseTypeEmpty) {
+				connection.CloseType = int32(CloseTypeError)
 				connection.CloseReason = "unknown"
 			}
-			o.onDisconnctedFunc(conn, connection.CloseReason)
+			o.onDisconnctedFunc(conn, connection.CloseReason, connection.CloseType, connection.CloseReasonObject)
 		}
 	}()
 
@@ -147,25 +148,26 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 		n, err := conn.Read(readBuffer)
 		if err != nil {
 			if err == io.EOF {
-				if connection.CloseReason == "" {
+				if connection.CloseType == int32(CloseTypeEmpty) {
+					connection.CloseType = int32(CloseTypeDisconnect)
 					connection.CloseReason = "close by client at read"
 				}
 				return nil
 			}
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-				connection.CloseReason = "close by client at read timeout"
+				connection.AppendCloseReason("close by client at read timeout", int32(CloseTypeDisconnectOnRead))
 				return nil // read tcp 10.88.1.32:8081->10.140.0.19:17449: read: connection timed out
 			}
 			if errors.Is(err, syscall.ECONNRESET) {
-				connection.CloseReason = "close by client at read reset"
+				connection.AppendCloseReason("close by client at read reset", int32(CloseTypeDisconnectOnRead))
 				return nil // example: read tcp 10.88.1.26:8081->10.140.0.19:27151: read: connection reset by peer
 			}
-			connection.CloseReason = "handle read error"
+			connection.AppendCloseReason("handle read error", int32(CloseTypeError))
 			return serr.Wrap(err)
 		}
 
 		if len(tempBuffer)+n > int(o.config.PacketSizeLimit) {
-			connection.CloseReason = "handle read error"
+			connection.AppendCloseReason("packet size too large", int32(CloseTypeError))
 			return serr.Errorf("packet size too large. size=%d", len(tempBuffer)+n)
 		}
 
@@ -179,7 +181,7 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 
 				packetSize = binary.BigEndian.Uint64(tempBuffer[:8])
 				if packetSize > uint64(o.config.PacketSizeLimit)-8 {
-					connection.CloseReason = "handle read error"
+					connection.AppendCloseReason("packet size too large", int32(CloseTypeError))
 					return serr.Errorf("packet size too large. size=%d", packetSize)
 				}
 
@@ -191,7 +193,7 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 			}
 
 			if rspData, err := o.onReceiveFunc(conn, tempBuffer[:packetSize]); err != nil {
-				connection.CloseReason = "handle func error"
+				connection.AppendCloseReason("onReceiveFunc error", int32(CloseTypeError))
 				return err
 			} else {
 				o.SendToUser(conn, rspData)
@@ -212,12 +214,12 @@ func (o *TcpServer) SendToUser(conn net.Conn, data []byte) error {
 	if _, err := conn.Write(writeBuffer); err != nil {
 		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 			// example: write tcp 10.88.1.32:8081->10.88.1.1:2890: write: connection timed out
-			o.DisconnectConnection(conn, "close by client at write timeout")
+			o.DisconnectConnection(conn, "close by client at write timeout", int32(CloseTypeDisconnectOnWrite), nil)
 		} else if errors.Is(err, syscall.EPIPE) {
 			// example: write tcp 10.88.1.32:8081->10.140.0.19:47207: write: broken pipe
-			o.DisconnectConnection(conn, "close by client at write broken")
+			o.DisconnectConnection(conn, "close by client at write broken", int32(CloseTypeDisconnectOnWrite), nil)
 		} else {
-			o.DisconnectConnection(conn, "handle write error")
+			o.DisconnectConnection(conn, "handle write error", int32(CloseTypeDisconnectOnWrite), nil)
 		}
 
 		return serr.Wrap(err)
@@ -233,10 +235,10 @@ func wrapPacket(data []byte) []byte {
 	return writeBuffer
 }
 
-func (o *TcpServer) DisconnectConnection(conn net.Conn, reason string) {
+func (o *TcpServer) DisconnectConnection(conn net.Conn, reason string, closeType int32, closeReasonObject interface{}) {
 	o.connsLock.Lock()
 	defer o.connsLock.Unlock()
 	if connection, ok := o.conns[conn]; ok {
-		connection.DisconnectFromServer(reason)
+		connection.DisconnectFromServer(reason, closeType, closeReasonObject)
 	}
 }
