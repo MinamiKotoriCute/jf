@@ -1,6 +1,7 @@
 package tcpserver
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 )
@@ -35,6 +36,10 @@ func (o *Connection) DisconnectFromServer(reason string, closeType int32, closeR
 	o.CloseReasonObject = closeReasonObject
 	if tcpConn, ok := o.Conn.(*net.TCPConn); ok {
 		o.CloseError = tcpConn.CloseRead()
+	} else if tslConn, ok := o.Conn.(*tls.Conn); ok {
+		if tcpConn, ok := tslConn.NetConn().(*net.TCPConn); ok {
+			o.CloseError = tcpConn.CloseRead()
+		}
 	}
 }
 

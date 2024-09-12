@@ -2,6 +2,8 @@ package tcpserver
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -51,9 +53,27 @@ func NewTcpServer(config *Config,
 }
 
 func (o *TcpServer) Start(address string) error {
-	listen, err := net.Listen("tcp", address)
-	if err != nil {
-		return serr.Wrap(err)
+	var listen net.Listener
+
+	if o.config.X509CertPath != "" && o.config.X509KeyPath != "" {
+		cert, err := tls.LoadX509KeyPair(o.config.X509CertPath, o.config.X509KeyPath)
+		if err != nil {
+			return serr.Wrap(err)
+		}
+		config := tls.Config{Certificates: []tls.Certificate{cert}}
+		config.Rand = rand.Reader
+
+		tempListen, err := tls.Listen("tcp", address, &config)
+		if err != nil {
+			return serr.Wrap(err)
+		}
+		listen = tempListen
+	} else {
+		tempListen, err := net.Listen("tcp", address)
+		if err != nil {
+			return serr.Wrap(err)
+		}
+		listen = tempListen
 	}
 
 	o.listen = listen
