@@ -2,13 +2,13 @@ package trigger
 
 import (
 	"bytes"
+	"log/slog"
 	"runtime/debug"
 	"sync"
 	"time"
 
 	"github.com/DataDog/gostackparse"
 	"github.com/MinamiKotoriCute/serr"
-	"github.com/sirupsen/logrus"
 )
 
 type HandlerFunc func() error
@@ -51,13 +51,13 @@ func (o *Trigger) Start() error {
 				return
 			case <-ticker.C:
 				if err := o.runHandlerAndCapturePanic(); err != nil {
-					fields := logrus.Fields{
-						"error": serr.ToJSON(err, true),
+					attrs := []interface{}{
+						"err", slog.Any("err", serr.ToJSON(err, true)),
 					}
 					if o.name != "" {
-						fields["name"] = o.name
+						attrs = append(attrs, slog.String("name", o.name))
 					}
-					logrus.WithFields(fields).Warning("trigger handle fail")
+					slog.Warn("trigger handle fail", attrs...)
 				}
 			}
 		}

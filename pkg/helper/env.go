@@ -1,12 +1,11 @@
 package helper
 
 import (
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 func GetOsEnvString(key string, defaultValue string) string {
@@ -26,11 +25,10 @@ func GetOsEnvInt(key string, defaultValue int) int {
 
 	num, err := strconv.Atoi(value)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"key":   key,
-			"value": value,
-			"err":   err,
-		}).Warning("GetOsEnvInt failed")
+		slog.Warn("GetOsEnvInt failed",
+			slog.String("key", key),
+			slog.String("value", value),
+			slog.Any("err", err))
 		return defaultValue
 	}
 
@@ -45,11 +43,10 @@ func GetOsEnvInt64(key string, defaultValue int64) int64 {
 
 	num, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"key":   key,
-			"value": value,
-			"err":   err,
-		}).Warning("GetOsEnvInt64 failed")
+		slog.Warn("GetOsEnvInt64 failed",
+			slog.String("key", key),
+			slog.String("value", value),
+			slog.Any("err", err))
 		return defaultValue
 	}
 
@@ -64,11 +61,10 @@ func GetOsEnvUInt64(key string, defaultValue uint64) uint64 {
 
 	num, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"key":   key,
-			"value": value,
-			"err":   err,
-		}).Warning("GetOsEnvUInt64 failed")
+		slog.Warn("GetOsEnvUInt64 failed",
+			slog.String("key", key),
+			slog.String("value", value),
+			slog.Any("err", err))
 		return defaultValue
 	}
 
@@ -83,11 +79,10 @@ func GetOsEnvBool(key string, defaultValue bool) bool {
 
 	b, err := strconv.ParseBool(value)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"key":   key,
-			"value": value,
-			"err":   err,
-		}).Warning("GetOsEnvBool failed")
+		slog.Warn("GetOsEnvBool failed",
+			slog.String("key", key),
+			slog.String("value", value),
+			slog.Any("err", err))
 		return defaultValue
 	}
 
@@ -125,11 +120,10 @@ func GetOsEnvTime(key string, defaultValue time.Time, layout string) time.Time {
 
 	t, err := time.Parse(layout, value)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"key":   key,
-			"value": value,
-			"err":   err,
-		}).Warning("GetOsEnvTime failed")
+		slog.Warn("GetOsEnvTime failed",
+			slog.String("key", key),
+			slog.String("value", value),
+			slog.Any("err", err))
 		return defaultValue
 	}
 

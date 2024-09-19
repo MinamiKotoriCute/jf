@@ -7,12 +7,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log/slog"
 	"net"
 	"sync"
 	"syscall"
 
 	"github.com/MinamiKotoriCute/serr"
-	"github.com/sirupsen/logrus"
 )
 
 type OnConnctedFuncType func(conn net.Conn) error
@@ -20,35 +20,40 @@ type OnDisconnctedFuncType func(conn net.Conn, closeReason string, closeType int
 type OnReceiveFuncType func(conn net.Conn, data []byte) ([]byte, error)
 
 type TcpServer struct {
-	listen            net.Listener
-	wg                sync.WaitGroup
-	serveWg           sync.WaitGroup
-	config            *Config
-	onConnctedFunc    OnConnctedFuncType
-	onDisconnctedFunc OnDisconnctedFuncType
-	onReceiveFunc     OnReceiveFuncType
-	conns             map[net.Conn]*Connection
-	connsLock         sync.RWMutex
+	listen    net.Listener
+	wg        sync.WaitGroup
+	serveWg   sync.WaitGroup
+	config    *Config
+	conns     map[net.Conn]*Connection
+	connsLock sync.RWMutex
+	log       *slog.Logger
 }
 
-func NewTcpServer(config *Config,
-	onConnctedFunc OnConnctedFuncType,
-	onDisconnctedFunc OnDisconnctedFuncType,
-	onReceiveFunc OnReceiveFuncType) *TcpServer {
-
-	if config.PacketSizeLimit == 0 {
-		config.PacketSizeLimit = 1024 * 1024 // 1MB
+func NewTcpServer(config *Config) *TcpServer {
+	c := &Config{
+		PacketSizeLimit:   config.PacketSizeLimit,
+		ReadBufferSize:    config.ReadBufferSize,
+		X509CertPath:      config.X509CertPath,
+		X509KeyPath:       config.X509KeyPath,
+		OnConnctedFunc:    config.OnConnctedFunc,
+		OnDisconnctedFunc: config.OnDisconnctedFunc,
+		OnReceiveFunc:     config.OnReceiveFunc,
 	}
-	if config.ReadBufferSize == 0 {
-		config.ReadBufferSize = 1024 // 1KB
+
+	if c.PacketSizeLimit == 0 {
+		c.PacketSizeLimit = 1024 * 1024 // 1MB
+	}
+	if c.ReadBufferSize == 0 {
+		c.ReadBufferSize = 1024 // 1KB
+	}
+	if c.Log == nil {
+		c.Log = slog.Default()
 	}
 
 	return &TcpServer{
-		config:            config,
-		onConnctedFunc:    onConnctedFunc,
-		onDisconnctedFunc: onDisconnctedFunc,
-		onReceiveFunc:     onReceiveFunc,
-		conns:             make(map[net.Conn]*Connection),
+		config: c,
+		conns:  make(map[net.Conn]*Connection),
+		log:    c.Log,
 	}
 }
 
@@ -112,7 +117,7 @@ func (o *TcpServer) serve() {
 
 		if err != nil {
 			if !errors.Is(err, net.ErrClosed) {
-				logrus.WithField("error", serr.ToJSON(err, true)).Warning("tcp server accept error")
+				o.log.Warn("tcp server accept error", slog.Any("err", serr.ToJSON(err, true)))
 			}
 			break
 		}
@@ -124,10 +129,9 @@ func (o *TcpServer) serve() {
 		o.wg.Add(1)
 		go func() {
 			if err := o.handleConnection(connection); err != nil {
-				logrus.WithFields(logrus.Fields{
-					"error":          serr.ToJSON(err, true),
-					"remote_address": conn.RemoteAddr().String(),
-				}).Warning("tcp server handle connection error")
+				o.log.Warn("tcp server handle connection error",
+					slog.Any("err", serr.ToJSON(err, true)),
+					slog.String("remote_address", conn.RemoteAddr().String()))
 			}
 		}()
 	}
@@ -147,20 +151,20 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 	tempBuffer := []byte{}
 	packetSize := uint64(0)
 
-	if o.onConnctedFunc != nil {
-		if err := o.onConnctedFunc(conn); err != nil {
+	if o.config.OnConnctedFunc != nil {
+		if err := o.config.OnConnctedFunc(conn); err != nil {
 			connection.AppendCloseReason("onConnctedFunc error", int32(CloseTypeError))
 			return err
 		}
 	}
 
 	defer func() {
-		if o.onDisconnctedFunc != nil {
+		if o.config.OnDisconnctedFunc != nil {
 			if connection.CloseType == int32(CloseTypeEmpty) {
 				connection.CloseType = int32(CloseTypeError)
 				connection.CloseReason = "unknown"
 			}
-			o.onDisconnctedFunc(conn, connection.CloseReason, connection.CloseType, connection.CloseReasonObject)
+			o.config.OnDisconnctedFunc(conn, connection.CloseReason, connection.CloseType, connection.CloseReasonObject)
 		}
 	}()
 
@@ -212,7 +216,7 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 				break
 			}
 
-			if rspData, err := o.onReceiveFunc(conn, tempBuffer[:packetSize]); err != nil {
+			if rspData, err := o.config.OnReceiveFunc(conn, tempBuffer[:packetSize]); err != nil {
 				connection.AppendCloseReason("onReceiveFunc error", int32(CloseTypeError))
 				return err
 			} else {
