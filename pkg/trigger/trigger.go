@@ -52,7 +52,7 @@ func (o *Trigger) Start() error {
 			case <-ticker.C:
 				if err := o.runHandlerAndCapturePanic(); err != nil {
 					attrs := []interface{}{
-						"err", slog.Any("err", serr.ToJSON(err, true)),
+						slog.Any("err", serr.ToJSON(err, true)),
 					}
 					if o.name != "" {
 						attrs = append(attrs, slog.String("name", o.name))
