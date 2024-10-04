@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/MinamiKotoriCute/serr"
@@ -31,13 +32,15 @@ type TcpServer struct {
 
 func NewTcpServer(config *Config) *TcpServer {
 	c := &Config{
-		PacketSizeLimit:   config.PacketSizeLimit,
-		ReadBufferSize:    config.ReadBufferSize,
-		X509CertPath:      config.X509CertPath,
-		X509KeyPath:       config.X509KeyPath,
-		OnConnctedFunc:    config.OnConnctedFunc,
-		OnDisconnctedFunc: config.OnDisconnctedFunc,
-		OnReceiveFunc:     config.OnReceiveFunc,
+		PacketSizeLimit:      config.PacketSizeLimit,
+		ReadBufferSize:       config.ReadBufferSize,
+		QueuePacketSizeLimit: config.QueuePacketSizeLimit,
+		QueuePacketNumLimit:  config.QueuePacketNumLimit,
+		X509CertPath:         config.X509CertPath,
+		X509KeyPath:          config.X509KeyPath,
+		OnConnctedFunc:       config.OnConnctedFunc,
+		OnDisconnctedFunc:    config.OnDisconnctedFunc,
+		OnReceiveFunc:        config.OnReceiveFunc,
 	}
 
 	if c.PacketSizeLimit == 0 {
@@ -45,6 +48,12 @@ func NewTcpServer(config *Config) *TcpServer {
 	}
 	if c.ReadBufferSize == 0 {
 		c.ReadBufferSize = 1024 // 1KB
+	}
+	if c.QueuePacketSizeLimit == 0 {
+		c.QueuePacketSizeLimit = 10 * 1024 * 1024 // 10MB
+	}
+	if c.QueuePacketNumLimit == 0 {
+		c.QueuePacketNumLimit = 10
 	}
 	if c.Log == nil {
 		c.Log = slog.Default()
@@ -158,6 +167,25 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 		}
 	}
 
+	queuePacketCh := make(chan []byte, o.config.QueuePacketNumLimit)
+	queuePacketSize := atomic.Int64{}
+
+	go func() {
+		for packet := range queuePacketCh {
+			queuePacketSize.Add(int64(-len(packet)))
+
+			if rspData, err := o.config.OnReceiveFunc(conn, packet); err != nil {
+				o.DisconnectConnection(conn, "onReceiveFunc error", int32(CloseTypeError), nil)
+				o.log.Warn("OnReceiveFunc error",
+					slog.Any("err", serr.ToJSON(err, true)),
+					slog.String("remote_address", conn.RemoteAddr().String()))
+				return
+			} else {
+				o.SendToUser(conn, rspData)
+			}
+		}
+	}()
+
 	defer func() {
 		if o.config.OnDisconnctedFunc != nil {
 			if connection.CloseType == int32(CloseTypeEmpty) {
@@ -167,6 +195,8 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 			o.config.OnDisconnctedFunc(conn, connection.CloseReason, connection.CloseType, connection.CloseReasonObject)
 		}
 	}()
+
+	defer close(queuePacketCh)
 
 	for {
 		n, err := conn.Read(readBuffer)
@@ -216,11 +246,17 @@ func (o *TcpServer) handleConnection(connection *Connection) error {
 				break
 			}
 
-			if rspData, err := o.config.OnReceiveFunc(conn, tempBuffer[:packetSize]); err != nil {
-				connection.AppendCloseReason("onReceiveFunc error", int32(CloseTypeError))
-				return err
-			} else {
-				o.SendToUser(conn, rspData)
+			if uint64(queuePacketSize.Load())+packetSize > o.config.QueuePacketSizeLimit {
+				connection.AppendCloseReason("queue packet size too large", int32(CloseTypeError))
+				return serr.Errorf("queue packet size too large. current=%d new=%d", queuePacketSize.Load(), packetSize)
+			}
+
+			select {
+			case queuePacketCh <- tempBuffer[:packetSize]:
+				queuePacketSize.Add(int64(packetSize))
+			default:
+				connection.AppendCloseReason("queue packet number too many", int32(CloseTypeError))
+				return serr.Errorf("queue packet number too many")
 			}
 
 			tempBuffer = tempBuffer[packetSize:]
